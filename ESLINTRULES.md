@@ -109,3 +109,27 @@ Applies to: `*.config.{js,mjs,cjs}`, `**/*.config.{js,mjs,cjs}`
 `eslint-config-prettier` disables all ESLint formatting rules that would conflict with Prettier output. Must always be the last entry in the config.
 
 > Pinned to `^9.1.0` — v10 is ESM-only and breaks Neovim's ESLint language server which uses CommonJS `require()` internally.
+
+---
+
+## CSpell Variant (`eslintCspell.config.js`)
+
+When **cspell** is selected during setup, `eslintCspell.config.js` is used instead of the base config. It is identical except it adds a `@cspell` plugin block:
+
+```js
+import cspellPlugin from '@cspell/eslint-plugin';
+
+// added between the Stylistic and General Rules sections:
+{
+  plugins: { '@cspell': cspellPlugin },
+  rules: {
+    '@cspell/spellchecker': ['warn', { autoFix: true }],
+  },
+},
+```
+
+| Rule                   | Behavior                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `@cspell/spellchecker` | Warns on misspelled words inline in ESLint output; `autoFix: true` enables IDE quick-fixes |
+
+Words added to `cspell.json` (the `words` array) are automatically whitelisted across both ESLint and the standalone `cspell lint` command.

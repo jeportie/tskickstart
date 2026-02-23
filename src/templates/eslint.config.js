@@ -1,4 +1,3 @@
-import cspellPlugin from '@cspell/eslint-plugin';
 import eslint from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier';
@@ -76,17 +75,6 @@ export default tseslint.config(
 
     rules: {
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
-    },
-  },
-
-  /* ---------------- CSPELL RULES ---------------- */
-  {
-    plugins: {
-      '@cspell': cspellPlugin,
-    },
-
-    rules: {
-      '@cspell/spellchecker': ['warn', { autoFix: true }],
     },
   },
 

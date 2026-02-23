@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -205,5 +205,137 @@ describe('create-checks CLI', () => {
     expect(pkg.scripts).toHaveProperty('test:unit', 'vitest unit --run');
     expect(pkg.scripts).toHaveProperty('test:integration', 'vitest int --run');
     expect(pkg.scripts).toHaveProperty('test:coverage', 'vitest --coverage --run');
+  });
+
+  /* ---------------- package.json — "type": "module" ---------------- */
+
+  it('patches "type": "module" into an existing package.json that lacks it', () => {
+    tmpDir = createTmpProject(); // createTmpProject writes pkg without type field
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.type).toBe('module');
+  });
+
+  it('preserves existing "type": "module" without duplicating it', () => {
+    tmpDir = createTmpProject();
+    writeFileSync(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'test-project', version: '1.0.0', type: 'module' }, null, 2),
+    );
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.type).toBe('module');
+  });
+
+  /* ---------------- Optional lint tools — absent by default ---------------- */
+  // In non-TTY mode the checkbox returns [] so none of the optional tools are selected.
+
+  it('does not copy cspell.json when cspell is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'cspell.json'))).toBe(false);
+  });
+
+  it('uses base eslint.config.js (not cspell variant) when cspell is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'eslint.config.js'), 'utf-8');
+    expect(content).not.toContain('@cspell');
+  });
+
+  it('does not copy .secretlintrc.json when secretlint is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, '.secretlintrc.json'))).toBe(false);
+  });
+
+  it('does not copy commitlint.config.js when commitlint is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'commitlint.config.js'))).toBe(false);
+  });
+
+  /* ---------------- check script — dynamic ---------------- */
+
+  it('check script contains only base commands when no optional tools are selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts.check).toBe('npm run format && npm run lint && npm run typecheck');
+    expect(pkg.scripts).not.toHaveProperty('spellcheck');
+    expect(pkg.scripts).not.toHaveProperty('secretlint');
+  });
+
+  it('check script includes test when vitest preset is set', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts.check).toContain('npm run test');
+  });
+
+  /* ---------------- pre-commit hook (husky + lint-staged) ---------------- */
+  // In non-TTY mode the confirm defaults to true so the hook is always set up here.
+
+  it('creates .husky/pre-commit with lint-staged and typecheck commands', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, '.husky', 'pre-commit'), 'utf-8');
+    expect(content).toContain('npx lint-staged');
+    expect(content).toContain('npm run typecheck');
+  });
+
+  it('pre-commit hook does not include "npm run test" when vitest is not set up', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, '.husky', 'pre-commit'), 'utf-8');
+    expect(content).not.toContain('npm run test');
+  });
+
+  it('pre-commit hook includes "npm run test" when a vitest preset is selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    const content = readFileSync(join(tmpDir, '.husky', 'pre-commit'), 'utf-8');
+    expect(content).toContain('npm run test');
+  });
+
+  it('does not create .husky/commit-msg when commitlint is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, '.husky', 'commit-msg'))).toBe(false);
+  });
+
+  it('does not overwrite an existing .husky/pre-commit', () => {
+    tmpDir = createTmpProject();
+    const huskyDir = join(tmpDir, '.husky');
+    mkdirSync(huskyDir, { recursive: true });
+    writeFileSync(join(huskyDir, 'pre-commit'), '# custom hook\n');
+    runCli(tmpDir);
+    expect(readFileSync(join(huskyDir, 'pre-commit'), 'utf-8')).toBe('# custom hook\n');
+  });
+
+  /* ---------------- lint-staged config ---------------- */
+
+  it('adds lint-staged config with format and lint commands to package.json', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg['lint-staged']).toBeDefined();
+    expect(pkg['lint-staged']['**/*']).toContain('npm run format');
+    expect(pkg['lint-staged']['**/*']).toContain('npm run lint');
+  });
+
+  it('lint-staged does not include spellcheck or secretlint when those tools are not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg['lint-staged']['**/*']).not.toContain('npm run spellcheck');
+    expect(pkg['lint-staged']['**/*']).not.toContain('npm run secretlint');
+  });
+
+  it('adds prepare: "husky" script to package.json', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts).toHaveProperty('prepare', 'husky');
   });
 });

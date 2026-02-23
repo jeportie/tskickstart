@@ -1,5 +1,4 @@
 import cspellPlugin from '@cspell/eslint-plugin';
-// TODO:  eslint/js not installed so  not  sure this work
 import eslint from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier';

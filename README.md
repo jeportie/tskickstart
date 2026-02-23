@@ -1,6 +1,6 @@
 # create-checks
 
-A zero-config scaffolding CLI that wires **ESLint + Prettier + TypeScript** into any Node.js project — and optionally sets up **Vitest** for testing — in one interactive command.
+A zero-config scaffolding CLI that wires **ESLint + Prettier + TypeScript** into any Node.js project — and optionally sets up **Vitest**, **Husky**, **lint-staged**, **Commitlint**, **CSpell**, and **Secretlint** — in one interactive command.
 
 ```sh
 npm create @jeportie/checks
@@ -10,18 +10,21 @@ npm create @jeportie/checks
 
 ## What it does
 
-Running `npm create @jeportie/checks` inside an existing project will:
+Running `npm create @jeportie/checks` inside an existing project will ask you a series of questions and then:
 
-1. **Install** ESLint, Prettier, and their plugins as dev dependencies
-2. **Copy** config files into your project root:
-   - `eslint.config.js` and `prettier.config.js`
-   - `.editorconfig`, `tsconfig.base.json`, `tsconfig.json`
-   - `.eslintignore`, `.prettierignore`, `.gitignore`
-3. **Inject** scripts into your `package.json`:
-   - `lint` → `eslint .`
-   - `format` → `prettier . --write`
-   - `typecheck` → `tsc --noEmit`
-4. **Prompt** you to optionally set up Vitest with a choice of presets
+1. **Ensure `package.json` exists** — creates one with `npm init -y` if missing, or patches `"type": "module"` if it is already there but missing that field
+2. **Install** ESLint, Prettier, TypeScript and their plugins as dev dependencies
+3. **Copy** config files into your project root
+4. **Inject scripts** into your `package.json`
+5. **Set up optional tooling** based on your answers to the interactive prompts
+
+### Interactive prompts
+
+| Prompt                       | What it sets up                                         |
+| ---------------------------- | ------------------------------------------------------- |
+| **Select more lint options** | Multi-select: `cspell`, `secretlint`, `commitlint`      |
+| **Set up Vitest?**           | Optional test runner — choose Native or Coverage preset |
+| **Set up pre-commit hook?**  | Husky + lint-staged wired to your selected tools        |
 
 All existing files are left untouched (the CLI skips them with a notice).
 
@@ -33,10 +36,15 @@ All existing files are left untouched (the CLI skips them with a notice).
 # Inside your existing project
 npm create @jeportie/checks
 
-# ESLint / Prettier / TypeScript scripts
+# Run all checks at once
+npm run check
+
+# Individual tools
 npm run lint
 npm run format
 npm run typecheck
+npm run spellcheck    # if cspell was selected
+npm run secretlint    # if secretlint was selected
 
 # If you chose the Native or Coverage Vitest preset
 npm test
@@ -57,10 +65,13 @@ npm create @jeportie/checks
         └─▶ npm downloads the create-checks package
             └─▶ node runs ./src/index.js  (registered via "bin" in package.json)
                 │
-                ├─ 1. npm install -D eslint prettier ...   (in YOUR project's CWD)
-                ├─ 2. copy template config files → YOUR project root
-                ├─ 3. read YOUR project/package.json → inject scripts → write it back
-                └─ 4. ask interactively whether to set up Vitest (and which preset)
+                ├─ 1. prompt — lint options (cspell / secretlint / commitlint)
+                ├─ 2. prompt — Vitest preset (none / native / coverage)
+                ├─ 3. prompt — pre-commit hook (husky + lint-staged)
+                ├─ 4. ensure package.json exists and has "type": "module"
+                ├─ 5. npm install -D eslint prettier ... (+ selected optional deps)
+                ├─ 6. copy template config files → YOUR project root
+                └─ 7. inject scripts + lint-staged config → YOUR package.json
 ```
 
 ### Template path resolution
@@ -91,6 +102,8 @@ When npm installs a package that has a `bin` field, it creates a symlink in `nod
 
 ## What gets installed in your project
 
+### Always installed
+
 | Package                             | Purpose                                           |
 | ----------------------------------- | ------------------------------------------------- |
 | `eslint`                            | JavaScript/TypeScript linter                      |
@@ -103,18 +116,73 @@ When npm installs a package that has a `bin` field, it creates a symlink in `nod
 | `typescript`                        | TypeScript compiler                               |
 | `@types/node`                       | Node.js type definitions                          |
 
-**Vitest preset — Native** (when selected):
+### If **cspell** is selected
 
-| Package   | Purpose                      |
-| --------- | ---------------------------- |
-| `vitest`  | Fast, Vite-native test runner |
+| Package                 | Purpose                                 |
+| ----------------------- | --------------------------------------- |
+| `cspell`                | Spell checker for source code and docs  |
+| `@cspell/eslint-plugin` | ESLint integration — flags typos inline |
 
-**Vitest preset — Coverage** (when selected):
+When cspell is selected, `eslintCspell.config.js` is used instead of the base `eslint.config.js`, adding the `@cspell/eslint-plugin` rule directly into ESLint.
 
-| Package                 | Purpose                                    |
-| ----------------------- | ------------------------------------------ |
-| `vitest`                | Fast, Vite-native test runner              |
-| `@vitest/coverage-v8`   | Code coverage powered by V8                |
+### If **secretlint** is selected
+
+| Package                                        | Purpose                               |
+| ---------------------------------------------- | ------------------------------------- |
+| `secretlint`                                   | Scans files for leaked secrets/tokens |
+| `@secretlint/secretlint-rule-preset-recommend` | Default ruleset for secretlint        |
+
+### If **commitlint** is selected
+
+| Package                           | Purpose                                     |
+| --------------------------------- | ------------------------------------------- |
+| `@commitlint/cli`                 | Lint commit messages                        |
+| `@commitlint/config-conventional` | Conventional Commits ruleset                |
+| `commitlint-plugin-cspell`        | Spell-check commit messages _(cspell only)_ |
+
+### If **pre-commit hook** is selected
+
+| Package       | Purpose                          |
+| ------------- | -------------------------------- |
+| `husky`       | Git hooks manager                |
+| `lint-staged` | Run linters only on staged files |
+
+The `.husky/pre-commit` hook is generated dynamically based on your selections:
+
+```sh
+npx lint-staged
+npm run typecheck
+npm run test        # only if a Vitest preset was chosen
+```
+
+The `.husky/commit-msg` hook is only written if commitlint was selected:
+
+```sh
+npx commitlint --edit
+```
+
+The `lint-staged` config in `package.json` is also generated dynamically:
+
+```json
+"lint-staged": {
+  "**/*": ["npm run format", "npm run lint", "npm run spellcheck", "npm run secretlint"]
+}
+```
+
+Only the commands for tools you selected are included.
+
+### Vitest preset — Native
+
+| Package  | Purpose                       |
+| -------- | ----------------------------- |
+| `vitest` | Fast, Vite-native test runner |
+
+### Vitest preset — Coverage
+
+| Package               | Purpose                       |
+| --------------------- | ----------------------------- |
+| `vitest`              | Fast, Vite-native test runner |
+| `@vitest/coverage-v8` | Code coverage powered by V8   |
 
 ---
 
@@ -130,6 +198,8 @@ Uses ESLint's flat config format (ESLint 9+). Includes:
 - Import ordering and cycle detection
 - Prettier compatibility (must be last)
 - Test file overrides (relaxed rules in `*.test.*`)
+
+When cspell is selected, `eslintCspell.config.js` is used instead, which adds `@cspell/eslint-plugin` to report spelling errors directly in ESLint output.
 
 ### `prettier.config.js`
 
@@ -157,6 +227,18 @@ Includes `node_modules`, `dist`, `coverage`, `.env*`, and `*.log`.
 
 Strict TypeScript configuration. `tsconfig.json` includes `src`, `test`, `__tests__`, and root-level `*.ts` / `*.js` files.
 
+### `commitlint.config.js` (commitlint only)
+
+Extends `@commitlint/config-conventional`. If cspell was also selected, the `commitlint-plugin-cspell` plugin is added to spell-check commit message bodies.
+
+### `.secretlintrc.json` (secretlint only)
+
+Enables the full `@secretlint/secretlint-rule-preset-recommend` ruleset to catch API keys, tokens, private keys, and similar secrets.
+
+### `cspell.json` (cspell only)
+
+Base CSpell config with the default English dictionary and common programming word lists enabled.
+
 ### `vitest.config.ts` (Vitest presets only)
 
 Both presets create a `vitest.config.ts` in your project root with:
@@ -170,10 +252,7 @@ Both presets create a `vitest.config.ts` in your project root with:
 - A `test.include` that covers both `__tests__/` and `test/` directory conventions:
 
   ```ts
-  include: [
-    '**/__tests__/**/*.{test,spec}.{ts,tsx,js}',
-    '**/test/**/*.{test,spec}.{ts,tsx,js}',
-  ]
+  include: ['**/__tests__/**/*.{test,spec}.{ts,tsx,js}', '**/test/**/*.{test,spec}.{ts,tsx,js}'];
   ```
 
 **Coverage preset** additionally adds:
@@ -198,8 +277,8 @@ When the CLI runs interactively it asks:
 ```
 ? Do you want to set up Vitest for testing? (Y/n)
 ? Which Vitest configuration would you like?
-  ❯ Native — vitest + path alias (@→src), test/test:unit/test:integration scripts
-    Coverage — adds @vitest/coverage-v8, HTML/JSON reports, test:coverage script
+  ❯ Native — vitest
+    Coverage — vitest + @vitest/coverage-v8
 ```
 
 ### Native preset
@@ -212,18 +291,16 @@ Installs `vitest` and adds these scripts:
 "test:integration": "vitest int --run"
 ```
 
-`test:unit` matches any file whose path contains `unit`.
-`test:integration` matches any file whose path contains `int`.
+`test:unit` matches any file whose path contains `unit`. `test:integration` matches any file whose path contains `int`.
+
+Also adds a `@` → `src/` path alias in `vitest.config.ts` and configures test discovery for both `__tests__/` and `test/` directories.
 
 ### Coverage preset
 
-Installs `vitest` + `@vitest/coverage-v8` and adds:
+Everything from Native, plus installs `@vitest/coverage-v8` and adds:
 
 ```json
-"test":             "vitest --run",
-"test:unit":        "vitest unit --run",
-"test:integration": "vitest int --run",
-"test:coverage":    "vitest --coverage --run"
+"test:coverage": "vitest --coverage --run"
 ```
 
 Coverage reports are written to `coverage/` and include HTML, JSON, and a JSON summary (compatible with GitHub Actions PR annotations).
@@ -232,7 +309,7 @@ Coverage reports are written to `coverage/` and include HTML, JSON, and a JSON s
 
 ## Non-interactive / CI usage
 
-Set the `VITEST_PRESET` environment variable to bypass the interactive prompt:
+Set the `VITEST_PRESET` environment variable to bypass the Vitest interactive prompt:
 
 ```sh
 # Skip Vitest setup
@@ -250,101 +327,6 @@ Set `NO_INSTALL=1` to skip all `npm install` calls (useful for testing):
 ```sh
 NO_INSTALL=1 node ./src/index.js
 ```
-
----
-
-## Next steps — optional tooling
-
-After running `create-checks`, here are recommended tools to layer on top:
-
-### Husky — git hooks
-
-Runs linting/tests automatically before every commit.
-
-```sh
-npm install -D husky
-npx husky init
-```
-
-Add to `.husky/pre-commit`:
-
-```sh
-npx lint-staged
-```
-
-### lint-staged — only lint changed files
-
-Prevents the pre-commit hook from linting your entire codebase.
-
-```sh
-npm install -D lint-staged
-```
-
-Add to `package.json`:
-
-```json
-"lint-staged": {
-  "*.{js,ts}": ["eslint --fix", "prettier --write"],
-  "*.{json,yml,md}": ["prettier --write --ignore-unknown"]
-}
-```
-
-### Commitlint — enforce Conventional Commits
-
-Ensures commit messages follow the `feat:`, `fix:`, `chore:` convention required by semantic-release.
-
-```sh
-npm install -D @commitlint/cli @commitlint/config-conventional
-echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
-```
-
-Add to `.husky/commit-msg`:
-
-```sh
-npx --no -- commitlint --edit $1
-```
-
-### Secretlint — prevent secret leaks
-
-Scans your files for accidentally committed API keys, tokens, and passwords.
-
-```sh
-npm install -D secretlint @secretlint/secretlint-rule-preset-recommend
-```
-
-Add a `.secretlintrc.json`:
-
-```json
-{
-  "rules": [{ "id": "@secretlint/secretlint-rule-preset-recommend" }]
-}
-```
-
-Add to `package.json` scripts:
-
-```json
-"secretlint": "secretlint ./src --maskSecrets"
-```
-
-### CSpell — spell checking
-
-Catches typos in source code, comments, and docs.
-
-```sh
-npm install -D cspell
-```
-
-Add to `package.json` scripts:
-
-```json
-"spellcheck": "cspell --no-progress \"./**/*.{js,ts,md,json}\""
-```
-
-### Semantic Release — automated versioning and publishing
-
-Reads your Conventional Commits and automatically bumps the version, generates a changelog, and publishes to npm.
-
-See [How to release](#how-to-release) below.
 
 ---
 
@@ -407,7 +389,7 @@ npm install
 ### Run tests
 
 ```sh
-npm test                  # all tests (30 integration tests)
+npm test                  # all tests
 npm run test:integration  # integration tests only
 npm run test:coverage     # with coverage report
 ```
@@ -434,19 +416,26 @@ create-checks/
 ├── src/
 │   ├── index.js                          # CLI entrypoint (#!/usr/bin/env node)
 │   └── templates/
-│       ├── eslint.config.js              # copied into the user's project
+│       ├── eslint.config.js              # copied when cspell is NOT selected
+│       ├── eslintCspell.config.js        # copied when cspell IS selected
 │       ├── prettier.config.js
 │       ├── .editorconfig
-│       ├── .eslintignore                 # dist, node_modules, package-lock.json, coverage
-│       ├── .prettierignore              # dist, node_modules, package-lock.json, coverage
-│       ├── .gitignore                   # node_modules, dist, coverage, .env*, *.log
+│       ├── .eslintignore
+│       ├── .prettierignore
+│       ├── _gitignore                    # copied as .gitignore
 │       ├── tsconfig.base.json
-│       ├── tsconfig.json                # includes src, test, __tests__
-│       ├── vitest.config.native.ts      # resolve alias + test:unit/integration
+│       ├── tsconfig.json
+│       ├── cspell.json                   # copied when cspell is selected
+│       ├── .secretlintrc.json            # copied when secretlint is selected
+│       ├── commitlint.config.js          # copied when commitlint is selected
+│       ├── .husky/
+│       │   ├── pre-commit                # template (generated dynamically at runtime)
+│       │   └── commit-msg               # template (written only when commitlint selected)
+│       ├── vitest.config.native.ts       # resolve alias + test:unit/integration
 │       └── vitest.config.coverage.ts    # + coverage block and test:coverage
 ├── __tests__/
 │   └── integration/
-│       └── index.int.test.js            # 30 integration tests
+│       └── index.int.test.js
 ├── .github/workflows/
 │   ├── pull-request-checks.yml
 │   └── semantic-release.yml

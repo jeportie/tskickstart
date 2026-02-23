@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// TODO: create /src folder with empty main.ts in it and /test if vitest is chosen.
+// TODO: parse user name from git if exist (if not ask with inquirer) and the add that to package.json and cspell words
+// BUG: some tests are failing => fix them
+
 import fs from 'fs-extra';
 import { execa } from 'execa';
 import inquirer from 'inquirer';
@@ -13,7 +17,22 @@ const pkgPath = path.join(cwd, 'package.json');
 
 console.log(pc.cyan('\n🔧 create-checks — setting up the project...\n'));
 
-/* ---------------- VITEST PROMPT (before any file changes) ---------------- */
+/* ---------------- ADDITIONAL LINT PROMPTS ---------------- */
+let lintOption = [];
+
+if (process.stdin.isTTY) {
+  const result = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'lintOption',
+      message: 'Select more lint options',
+      choices: ['cspell', 'secretlint', 'commitlint'],
+    },
+  ]);
+  lintOption = result.lintOption;
+}
+
+/* ---------------- VITEST PROMPT ---------------- */
 
 // VITEST_PRESET can be set to 'native', 'coverage', or 'none' to bypass the prompt
 // (used by tests and CI environments where stdin is not a TTY)
@@ -37,11 +56,11 @@ if (!vitestPreset && process.stdin.isTTY) {
         message: 'Which Vitest configuration would you like?',
         choices: [
           {
-            name: 'Native — vitest + path alias (@→src), test/test:unit/test:integration scripts',
+            name: 'Native — vitest',
             value: 'native',
           },
           {
-            name: 'Coverage — adds @vitest/coverage-v8, HTML/JSON reports, test:coverage script',
+            name: 'Coverage — vitest + @vitest/coverage-v8',
             value: 'coverage',
           },
         ],
@@ -51,15 +70,52 @@ if (!vitestPreset && process.stdin.isTTY) {
   }
 }
 
+/* ---------------- PRE COMMIT HOOK PROMPT ---------------- */
+let setupPrecommit = true;
+
+if (process.stdin.isTTY) {
+  const result = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'setupPrecommit',
+      message: 'Do you want to set up pre-commit hook (husky + lint-staged)?',
+      default: true,
+    },
+  ]);
+  setupPrecommit = result.setupPrecommit;
+}
+
 /* ---------------- ENSURE package.json EXISTS ---------------- */
 
 if (!(await fs.pathExists(pkgPath))) {
-  console.log(pc.yellow('  No package.json found — running npm init -y...'));
-  await execa('npm', ['init', '-y'], { stdio: 'inherit' });
+  console.log(pc.red('\n⨯'), pc.yellow(' No package.json found — running npm init -y...'));
+  await execa('npm', ['init', '-y'], { stdout: 'ignore', stderr: 'inherit' });
   const pkg = await fs.readJson(pkgPath);
   pkg.type = 'module';
   await fs.writeJson(pkgPath, pkg, { spaces: 2 });
-  console.log(pc.green('  ✔') + '  package.json created with "type": "module"');
+  console.log(pc.green('✔') + '  package.json created with "type": "module"');
+} else {
+  const pkg = await fs.readJson(pkgPath);
+  if (pkg.type !== 'module') {
+    pkg.type = 'module';
+    await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+    console.log(pc.green('✔') + '  package.json — added "type": "module"');
+  }
+}
+
+/* ---------------- SPINNER HELPER ---------------- */
+
+function startSpinner(text) {
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  process.stdout.write(`${frames[0]}  ${text}`);
+  const id = setInterval(() => {
+    process.stdout.write(`\r${pc.cyan(frames[i++ % frames.length])}  ${text}`);
+  }, 80);
+  return (doneText) => {
+    clearInterval(id);
+    process.stdout.write(`\r\x1B[K${pc.green('✔')}  ${doneText}\n`);
+  };
 }
 
 /* ---------------- INSTALL DEPENDENCIES ---------------- */
@@ -74,16 +130,28 @@ if (!process.env.NO_INSTALL) {
     '@stylistic/eslint-plugin',
     'eslint-plugin-import',
     'eslint-import-resolver-typescript',
-    'secretlint',
-    '@secretlint/secretlint-rule-preset-recommend',
-    'cspell',
-    'cspell/eslint-plugin',
-    '@commitlint/cli',
-    '@commitlint/config-conventional',
-    'commitlint-plugin-cspell',
     'typescript',
     '@types/node',
   ];
+
+  if (lintOption.includes('secretlint')) {
+    deps.push('secretlint', '@secretlint/secretlint-rule-preset-recommend');
+  }
+
+  if (lintOption.includes('cspell')) {
+    deps.push('cspell', '@cspell/eslint-plugin');
+  }
+
+  if (lintOption.includes('commitlint')) {
+    deps.push('@commitlint/cli', '@commitlint/config-conventional');
+    if (lintOption.includes('cspell')) {
+      deps.push('commitlint-plugin-cspell');
+    }
+  }
+
+  if (setupPrecommit) {
+    deps.push('husky', 'lint-staged');
+  }
 
   if (vitestPreset === 'native' || vitestPreset === 'coverage') {
     deps.push('vitest');
@@ -92,65 +160,44 @@ if (!process.env.NO_INSTALL) {
     deps.push('@vitest/coverage-v8');
   }
 
-  console.log(pc.dim('  Installing dev dependencies...'));
-  await execa('npm', ['install', '-D', ...deps], { stdio: 'inherit' });
+  const stopSpinner = startSpinner('Installing dev dependencies...');
+  await execa('npm', ['install', '-D', ...deps], { stdio: 'ignore' });
+  stopSpinner('dev dependencies installed');
 }
 
 /* ---------------- COPY TEMPLATE FILES ---------------- */
+console.log(pc.green('→') + `  copying config files...`);
 
-await fs.copyFile(path.join(__dirname, 'templates/eslint.config.js'), path.join(cwd, 'eslint.config.js'));
-console.log(pc.green('  ✔') + '  eslint.config.js');
-
-await fs.copyFile(path.join(__dirname, 'templates/prettier.config.js'), path.join(cwd, 'prettier.config.js'));
-console.log(pc.green('  ✔') + '  prettier.config.js');
-
-if (!(await fs.pathExists(path.join(cwd, '.editorconfig')))) {
-  await fs.copyFile(path.join(__dirname, 'templates/.editorconfig'), path.join(cwd, '.editorconfig'));
-  console.log(pc.green('  ✔') + '  .editorconfig');
-} else {
-  console.log(pc.dim('  –') + '  .editorconfig (already exists, skipped)');
-}
-
-if (!(await fs.pathExists(path.join(cwd, '.eslintignore')))) {
-  await fs.copyFile(path.join(__dirname, 'templates/.eslintignore'), path.join(cwd, '.eslintignore'));
-  console.log(pc.green('  ✔') + '  .eslintignore');
-} else {
-  console.log(pc.dim('  –') + '  .eslintignore (already exists, skipped)');
-}
-
-if (!(await fs.pathExists(path.join(cwd, '.prettierignore')))) {
-  await fs.copyFile(path.join(__dirname, 'templates/.prettierignore'), path.join(cwd, '.prettierignore'));
-  console.log(pc.green('  ✔') + '  .prettierignore');
-} else {
-  console.log(pc.dim('  –') + '  .prettierignore (already exists, skipped)');
-}
-
-if (!(await fs.pathExists(path.join(cwd, '.secretlintrc.json')))) {
-  await fs.copyFile(path.join(__dirname, 'templates/.secretlintrc'), path.join(cwd, '.secretlintrc'));
-  console.log(pc.green('  ✔') + '  .secretlintrc');
-} else {
-  console.log(pc.dim('  –') + '  .secretlintrc (already exists, skipped)');
-}
-
-if (!(await fs.pathExists(path.join(cwd, '.gitignore')))) {
-  await fs.copyFile(path.join(__dirname, 'templates/_gitignore'), path.join(cwd, '.gitignore'));
-  console.log(pc.green('  ✔') + '  .gitignore');
-} else {
-  console.log(pc.dim('  –') + '  .gitignore (already exists, skipped)');
-}
+// --- regular config files (typescript → formatting → linting → testing → commit hooks) ---
 
 if (!(await fs.pathExists(path.join(cwd, 'tsconfig.base.json')))) {
   await fs.copyFile(path.join(__dirname, 'templates/tsconfig.base.json'), path.join(cwd, 'tsconfig.base.json'));
-  console.log(pc.green('  ✔') + '  tsconfig.base.json');
+  console.log(pc.green('✔') + '  tsconfig.base.json');
 } else {
-  console.log(pc.dim('  –') + '  tsconfig.base.json (already exists, skipped)');
+  console.log(pc.dim('–') + '    tsconfig.base.json (already exists, skipped)');
 }
 
 if (!(await fs.pathExists(path.join(cwd, 'tsconfig.json')))) {
   await fs.copyFile(path.join(__dirname, 'templates/tsconfig.json'), path.join(cwd, 'tsconfig.json'));
-  console.log(pc.green('  ✔') + '  tsconfig.json');
+  console.log(pc.green('✔') + '    tsconfig.json');
 } else {
-  console.log(pc.dim('  –') + '  tsconfig.json (already exists, skipped)');
+  console.log(pc.dim('–') + '    tsconfig.json (already exists, skipped)');
+}
+
+await fs.copyFile(path.join(__dirname, 'templates/prettier.config.js'), path.join(cwd, 'prettier.config.js'));
+console.log(pc.green('✔') + '    prettier.config.js');
+
+const eslintConfig = lintOption.includes('cspell') ? 'templates/eslintCspell.config.js' : 'templates/eslint.config.js';
+await fs.copyFile(path.join(__dirname, eslintConfig), path.join(cwd, 'eslint.config.js'));
+console.log(pc.green('✔') + '    eslint.config.js');
+
+if (lintOption.includes('cspell')) {
+  if (!(await fs.pathExists(path.join(cwd, 'cspell.json')))) {
+    await fs.copyFile(path.join(__dirname, 'templates/cspell.json'), path.join(cwd, 'cspell.json'));
+    console.log(pc.green('✔') + '    cspell.json');
+  } else {
+    console.log(pc.dim('–') + '    cspell.json (already exists, skipped)');
+  }
 }
 
 if (vitestPreset === 'native' || vitestPreset === 'coverage') {
@@ -158,19 +205,102 @@ if (vitestPreset === 'native' || vitestPreset === 'coverage') {
     path.join(__dirname, `templates/vitest.config.${vitestPreset}.ts`),
     path.join(cwd, 'vitest.config.ts'),
   );
-  console.log(pc.green('  ✔') + '  vitest.config.ts');
+  console.log(pc.green('✔') + '    vitest.config.ts');
+}
+
+if (lintOption.includes('commitlint')) {
+  if (!(await fs.pathExists(path.join(cwd, 'commitlint.config.js')))) {
+    await fs.copyFile(path.join(__dirname, 'templates/commitlint.config.js'), path.join(cwd, 'commitlint.config.js'));
+    console.log(pc.green('✔') + '    commitlint.config.js');
+  } else {
+    console.log(pc.dim('–') + '    commitlint.config.js (already exists, skipped)');
+  }
+}
+
+// --- dotfiles (editor/git → formatting → linting → commit hooks) ---
+
+if (!(await fs.pathExists(path.join(cwd, '.editorconfig')))) {
+  await fs.copyFile(path.join(__dirname, 'templates/.editorconfig'), path.join(cwd, '.editorconfig'));
+  console.log(pc.green('✔') + '    .editorconfig');
+} else {
+  console.log(pc.dim('–') + '    .editorconfig (already exists, skipped)');
+}
+
+if (!(await fs.pathExists(path.join(cwd, '.gitignore')))) {
+  await fs.copyFile(path.join(__dirname, 'templates/_gitignore'), path.join(cwd, '.gitignore'));
+  console.log(pc.green('✔') + '    .gitignore');
+} else {
+  console.log(pc.dim('–') + '    .gitignore (already exists, skipped)');
+}
+
+if (!(await fs.pathExists(path.join(cwd, '.prettierignore')))) {
+  await fs.copyFile(path.join(__dirname, 'templates/.prettierignore'), path.join(cwd, '.prettierignore'));
+  console.log(pc.green('✔') + '    .prettierignore');
+} else {
+  console.log(pc.dim('–') + '    .prettierignore (already exists, skipped)');
+}
+
+if (!(await fs.pathExists(path.join(cwd, '.eslintignore')))) {
+  await fs.copyFile(path.join(__dirname, 'templates/.eslintignore'), path.join(cwd, '.eslintignore'));
+  console.log(pc.green('✔') + '    .eslintignore');
+} else {
+  console.log(pc.dim('–') + '    .eslintignore (already exists, skipped)');
+}
+
+if (lintOption.includes('secretlint')) {
+  if (!(await fs.pathExists(path.join(cwd, '.secretlintrc.json')))) {
+    await fs.copyFile(path.join(__dirname, 'templates/.secretlintrc.json'), path.join(cwd, '.secretlintrc.json'));
+    console.log(pc.green('✔') + '    .secretlintrc.json');
+  } else {
+    console.log(pc.dim('–') + '    .secretlintrc.json (already exists, skipped)');
+  }
+}
+
+if (setupPrecommit) {
+  const huskyDir = path.join(cwd, '.husky');
+  await fs.ensureDir(huskyDir);
+
+  const preCommitDest = path.join(huskyDir, 'pre-commit');
+  if (!(await fs.pathExists(preCommitDest))) {
+    const lines = ['npx lint-staged', 'npm run typecheck'];
+    if (vitestPreset === 'native' || vitestPreset === 'coverage') lines.push('npm run test');
+    await fs.writeFile(preCommitDest, lines.join('\n') + '\n');
+    console.log(pc.green('✔') + '    .husky/pre-commit');
+  } else {
+    console.log(pc.dim('–') + '    .husky/pre-commit (already exists, skipped)');
+  }
+
+  if (lintOption.includes('commitlint')) {
+    const commitMsgDest = path.join(huskyDir, 'commit-msg');
+    if (!(await fs.pathExists(commitMsgDest))) {
+      await fs.writeFile(commitMsgDest, 'npx commitlint --edit\n');
+      console.log(pc.green('✔') + '    .husky/commit-msg');
+    } else {
+      console.log(pc.dim('–') + '    .husky/commit-msg (already exists, skipped)');
+    }
+  }
 }
 
 /* ---------------- UPDATE package.json SCRIPTS ---------------- */
 
 const pkg = await fs.readJson(pkgPath);
 
+const checkParts = ['npm run format', 'npm run lint', 'npm run typecheck'];
+if (lintOption.includes('cspell')) checkParts.push('npm run spellcheck');
+if (lintOption.includes('secretlint')) checkParts.push('npm run secretlint');
+if (vitestPreset === 'native' || vitestPreset === 'coverage') checkParts.push('npm run test');
+
 pkg.scripts = {
   ...pkg.scripts,
-  lint: 'eslint .',
+  check: checkParts.join(' && '),
   format: 'prettier . --write',
+  lint: 'eslint .',
   typecheck: 'tsc --noEmit',
 };
+
+if (lintOption.includes('cspell')) pkg.scripts.spellcheck = 'cspell lint .';
+if (lintOption.includes('secretlint')) pkg.scripts.secretlint = 'secretlint **/*';
+if (setupPrecommit) pkg.scripts.prepare = 'husky';
 
 if (vitestPreset === 'native' || vitestPreset === 'coverage') {
   pkg.scripts.test = 'vitest --run';
@@ -181,11 +311,78 @@ if (vitestPreset === 'coverage') {
   pkg.scripts['test:coverage'] = 'vitest --coverage --run';
 }
 
-await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+if (setupPrecommit) {
+  const lintStagedCmds = ['npm run format', 'npm run lint'];
+  if (lintOption.includes('cspell')) lintStagedCmds.push('npm run spellcheck');
+  if (lintOption.includes('secretlint')) lintStagedCmds.push('npm run secretlint');
+  pkg['lint-staged'] = { '**/*': lintStagedCmds };
+}
 
-const baseScripts = ['lint', 'format', 'typecheck'];
-if (vitestPreset === 'native' || vitestPreset === 'coverage') baseScripts.push('test', 'test:unit', 'test:integration');
-if (vitestPreset === 'coverage') baseScripts.push('test:coverage');
-console.log(pc.green('  ✔') + `  package.json  (scripts: ${baseScripts.join(', ')})`);
+// Set sensible defaults before writing
+if (!pkg.license) pkg.license = 'MIT';
+if (!pkg.keywords) pkg.keywords = [];
+if (!pkg.main || pkg.main === 'index.js') pkg.main = 'src/main.ts';
+
+// Rebuild scripts in preferred order
+const scriptOrder = [
+  'test',
+  'check',
+  'format',
+  'lint',
+  'typecheck',
+  'spellcheck',
+  'secretlint',
+  'prepare',
+  'test:unit',
+  'test:integration',
+  'test:coverage',
+  'build',
+  'dev',
+  'start',
+];
+const orderedScripts = {};
+for (const key of scriptOrder) {
+  if (key in pkg.scripts) orderedScripts[key] = pkg.scripts[key];
+}
+for (const key of Object.keys(pkg.scripts)) {
+  if (!(key in orderedScripts)) orderedScripts[key] = pkg.scripts[key];
+}
+pkg.scripts = orderedScripts;
+
+// Rebuild top-level keys in preferred order
+const topLevelOrder = [
+  'name',
+  'description',
+  'version',
+  'author',
+  'license',
+  'keywords',
+  'type',
+  'main',
+  'scripts',
+  'devDependencies',
+  'dependencies',
+];
+const organized = {};
+for (const key of topLevelOrder) {
+  if (key in pkg) organized[key] = pkg[key];
+}
+for (const key of Object.keys(pkg)) {
+  if (!topLevelOrder.includes(key) && key !== 'lint-staged') organized[key] = pkg[key];
+}
+if (pkg['lint-staged']) organized['lint-staged'] = pkg['lint-staged'];
+
+await fs.writeJson(pkgPath, organized, { spaces: 2 });
+
+const addedScripts = ['check', 'lint', 'format', 'typecheck'];
+if (lintOption.includes('cspell')) addedScripts.push('spellcheck');
+if (lintOption.includes('secretlint')) addedScripts.push('secretlint');
+if (vitestPreset === 'native' || vitestPreset === 'coverage')
+  addedScripts.push('test', 'test:unit', 'test:integration');
+if (vitestPreset === 'coverage') addedScripts.push('test:coverage');
+console.log(pc.green('→') + '  scripts added in package.json:');
+for (const script of addedScripts) {
+  console.log(pc.green('✔') + `    ${script}`);
+}
 
 console.log(pc.green('\n✅ Done!\n'));

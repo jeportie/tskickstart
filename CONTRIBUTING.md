@@ -27,10 +27,25 @@ This installs dev dependencies and runs `husky` to set up git hooks automaticall
 
 ```
 src/
-  index.js              # CLI entrypoint — the only file that runs when a user calls the tool
+  index.js                          # CLI entrypoint (#!/usr/bin/env node)
   templates/
-    eslint.config.js    # Template copied into the user's project
-    prettier.config.js  # Template copied into the user's project
+    eslint.config.js                # copied when cspell is NOT selected
+    eslintCspell.config.js          # copied when cspell IS selected
+    prettier.config.js
+    .editorconfig
+    .eslintignore
+    .prettierignore
+    _gitignore                      # copied as .gitignore
+    tsconfig.base.json
+    tsconfig.json
+    cspell.json                     # copied when cspell is selected
+    .secretlintrc.json              # copied when secretlint is selected
+    commitlint.config.js            # copied when commitlint is selected
+    .husky/
+      pre-commit                    # generated dynamically at runtime
+      commit-msg                    # written only when commitlint is selected
+    vitest.config.native.ts         # resolve alias + test:unit/integration
+    vitest.config.coverage.ts       # + coverage block and test:coverage
 
 __tests__/
   integration/
@@ -42,7 +57,6 @@ __tests__/
 
 release.config.mjs          # semantic-release plugin configuration
 commitlint.config.js        # Commit message rules
-lint-staged.config.mjs      # What runs on pre-commit (eslint, prettier, cspell, secretlint)
 ```
 
 ---
