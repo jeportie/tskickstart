@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// TODO: refactor into separate modules for easier maintenance
+
 import fs from 'fs-extra';
 import { execa } from 'execa';
 import inquirer from 'inquirer';
@@ -11,14 +13,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 const pkgPath = path.join(cwd, 'package.json');
 
-// Ctrl+C during any inquirer prompt throws ExitPromptError as an unhandled
-// rejection (top-level await). Catch it here for a clean exit.
-process.on('unhandledRejection', (reason) => {
-  if (reason?.name === 'ExitPromptError') {
-    console.log(pc.yellow('\nCancelled.\n'));
-    process.exit(0);
+// Thin wrapper: catches ExitPromptError (thrown synchronously via signal-exit
+// when the user presses Ctrl+C) so the process exits cleanly without a stack trace.
+async function prompt(questions) {
+  try {
+    return await inquirer.prompt(questions);
+  } catch (err) {
+    if (err?.name === 'ExitPromptError') {
+      console.log(pc.yellow('\nCancelled.\n'));
+      process.exit(0);
+    }
+    throw err;
   }
-});
+}
 
 console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 
@@ -26,7 +33,7 @@ console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 let lintOption = [];
 
 if (process.stdin.isTTY) {
-  const result = await inquirer.prompt([
+  const result = await prompt([
     {
       type: 'checkbox',
       name: 'lintOption',
@@ -44,7 +51,7 @@ if (process.stdin.isTTY) {
 let vitestPreset = process.env.VITEST_PRESET;
 
 if (!vitestPreset && process.stdin.isTTY) {
-  const { setupVitest } = await inquirer.prompt([
+  const { setupVitest } = await prompt([
     {
       type: 'confirm',
       name: 'setupVitest',
@@ -54,7 +61,7 @@ if (!vitestPreset && process.stdin.isTTY) {
   ]);
 
   if (setupVitest) {
-    const { preset } = await inquirer.prompt([
+    const { preset } = await prompt([
       {
         type: 'list',
         name: 'preset',
@@ -79,7 +86,7 @@ if (!vitestPreset && process.stdin.isTTY) {
 let setupPrecommit = true;
 
 if (process.stdin.isTTY) {
-  const result = await inquirer.prompt([
+  const result = await prompt([
     {
       type: 'confirm',
       name: 'setupPrecommit',
@@ -115,7 +122,7 @@ if (process.env.AUTHOR_NAME !== undefined) {
   }
 
   if (!authorName && process.stdin.isTTY) {
-    const result = await inquirer.prompt([
+    const result = await prompt([
       {
         type: 'input',
         name: 'authorName',
