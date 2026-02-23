@@ -329,7 +329,15 @@ const srcDir = path.join(cwd, 'src');
 await fs.ensureDir(srcDir);
 const mainTs = path.join(srcDir, 'main.ts');
 if (!(await fs.pathExists(mainTs))) {
-  await fs.writeFile(mainTs, '');
+  await fs.writeFile(
+    mainTs,
+    `export function helloWorld(): void {
+  console.log('Hello, World!');
+}
+
+helloWorld();
+`,
+  );
   console.log(pc.green('✔') + '    src/main.ts');
 } else {
   console.log(pc.dim('–') + '    src/main.ts (already exists, skipped)');
@@ -338,7 +346,31 @@ if (!(await fs.pathExists(mainTs))) {
 if (vitestPreset === 'native' || vitestPreset === 'coverage') {
   const testDir = path.join(cwd, 'test');
   await fs.ensureDir(testDir);
-  console.log(pc.green('✔') + '    test/');
+  const mainTestTs = path.join(testDir, 'main.test.ts');
+  if (!(await fs.pathExists(mainTestTs))) {
+    await fs.writeFile(
+      mainTestTs,
+      `import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { helloWorld } from '@/main';
+
+describe('helloWorld', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('logs "Hello, World!" to the console', () => {
+    const spy = vi.spyOn(console, 'log');
+    helloWorld();
+    expect(spy).toHaveBeenCalledWith('Hello, World!');
+  });
+});
+`,
+    );
+    console.log(pc.green('✔') + '    test/main.test.ts');
+  } else {
+    console.log(pc.dim('–') + '    test/main.test.ts (already exists, skipped)');
+  }
 }
 
 /* ---------------- UPDATE package.json SCRIPTS ---------------- */

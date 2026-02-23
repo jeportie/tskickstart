@@ -347,6 +347,14 @@ describe('tskickstart CLI', () => {
     expect(existsSync(join(tmpDir, 'src', 'main.ts'))).toBe(true);
   });
 
+  it('src/main.ts contains helloWorld function', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'src', 'main.ts'), 'utf-8');
+    expect(content).toContain('helloWorld');
+    expect(content).toContain("'Hello, World!'");
+  });
+
   it('does not overwrite an existing src/main.ts', () => {
     tmpDir = createTmpProject();
     mkdirSync(join(tmpDir, 'src'), { recursive: true });
@@ -359,6 +367,27 @@ describe('tskickstart CLI', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { VITEST_PRESET: 'native' });
     expect(existsSync(join(tmpDir, 'test'))).toBe(true);
+  });
+
+  it('creates test/main.test.ts when a vitest preset is selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    expect(existsSync(join(tmpDir, 'test', 'main.test.ts'))).toBe(true);
+  });
+
+  it('test/main.test.ts imports helloWorld and spies on console.log', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    const content = readFileSync(join(tmpDir, 'test', 'main.test.ts'), 'utf-8');
+    expect(content).toContain("from '@/main'");
+    expect(content).toContain('vi.spyOn(console');
+    expect(content).toContain("'Hello, World!'");
+  });
+
+  it('does not create test/main.test.ts when vitest is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'test', 'main.test.ts'))).toBe(false);
   });
 
   it('does not create test/ directory when vitest is not selected', () => {
