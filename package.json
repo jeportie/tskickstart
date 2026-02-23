@@ -1,24 +1,27 @@
 {
-  "name": "@jeportie/create-checks",
+  "name": "@jeportie/create-tskickstart",
   "version": "0.0.0-semantically-released",
-  "description": "Scaffolding CLI that installs ESLint + Prettier and injects config into any project",
+  "description": "Scaffolding CLI that kick-starts any TypeScript project with ESLint, Prettier, Vitest, Husky, and more",
   "author": "jeportie",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jeportie/create-checks.git"
+    "url": "git://github.com/jeportie/create-tskickstart.git"
   },
   "keywords": [
     "eslint",
     "prettier",
+    "typescript",
     "scaffolding",
     "create",
-    "cli"
+    "cli",
+    "vitest",
+    "husky"
   ],
   "license": "MIT",
   "private": false,
   "type": "module",
   "bin": {
-    "create-checks": "src/index.js"
+    "create-tskickstart": "src/index.js"
   },
   "files": [
     "src"

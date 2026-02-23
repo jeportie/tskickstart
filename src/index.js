@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 
-// TODO: create /src folder with empty main.ts in it and /test if vitest is chosen.
-// TODO: parse user name from git if exist (if not ask with inquirer) and the add that to package.json and cspell words
-// BUG: some tests are failing => fix them
-
 import fs from 'fs-extra';
 import { execa } from 'execa';
 import inquirer from 'inquirer';
@@ -15,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 const pkgPath = path.join(cwd, 'package.json');
 
-console.log(pc.cyan('\n🔧 create-checks — setting up the project...\n'));
+console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 
 /* ---------------- ADDITIONAL LINT PROMPTS ---------------- */
 let lintOption = [];
@@ -83,6 +79,42 @@ if (process.stdin.isTTY) {
     },
   ]);
   setupPrecommit = result.setupPrecommit;
+}
+
+/* ---------------- AUTHOR NAME ---------------- */
+
+// AUTHOR_NAME env var bypasses git config + prompt (used by tests and CI)
+let authorName = '';
+
+if (process.env.AUTHOR_NAME !== undefined) {
+  authorName = process.env.AUTHOR_NAME;
+} else {
+  try {
+    const { stdout } = await execa('git', ['config', 'github.user']);
+    authorName = stdout.trim();
+  } catch {
+    // github.user not set
+  }
+
+  if (!authorName) {
+    try {
+      const { stdout } = await execa('git', ['config', 'user.name']);
+      authorName = stdout.trim();
+    } catch {
+      // git not available or user.name not set
+    }
+  }
+
+  if (!authorName && process.stdin.isTTY) {
+    const result = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'authorName',
+        message: 'Your name (added to package.json and spell checker):',
+      },
+    ]);
+    authorName = result.authorName.trim();
+  }
 }
 
 /* ---------------- ENSURE package.json EXISTS ---------------- */
@@ -198,6 +230,16 @@ if (lintOption.includes('cspell')) {
   } else {
     console.log(pc.dim('–') + '    cspell.json (already exists, skipped)');
   }
+
+  if (authorName) {
+    const cspellPath = path.join(cwd, 'cspell.json');
+    const cspellJson = await fs.readJson(cspellPath);
+    if (!cspellJson.words) cspellJson.words = [];
+    for (const word of authorName.split(/\s+/).filter(Boolean)) {
+      if (!cspellJson.words.includes(word)) cspellJson.words.push(word);
+    }
+    await fs.writeJson(cspellPath, cspellJson, { spaces: 2 });
+  }
 }
 
 if (vitestPreset === 'native' || vitestPreset === 'coverage') {
@@ -281,6 +323,24 @@ if (setupPrecommit) {
   }
 }
 
+// --- project directories ---
+
+const srcDir = path.join(cwd, 'src');
+await fs.ensureDir(srcDir);
+const mainTs = path.join(srcDir, 'main.ts');
+if (!(await fs.pathExists(mainTs))) {
+  await fs.writeFile(mainTs, '');
+  console.log(pc.green('✔') + '    src/main.ts');
+} else {
+  console.log(pc.dim('–') + '    src/main.ts (already exists, skipped)');
+}
+
+if (vitestPreset === 'native' || vitestPreset === 'coverage') {
+  const testDir = path.join(cwd, 'test');
+  await fs.ensureDir(testDir);
+  console.log(pc.green('✔') + '    test/');
+}
+
 /* ---------------- UPDATE package.json SCRIPTS ---------------- */
 
 const pkg = await fs.readJson(pkgPath);
@@ -319,6 +379,7 @@ if (setupPrecommit) {
 }
 
 // Set sensible defaults before writing
+if (authorName && !pkg.author) pkg.author = authorName;
 if (!pkg.license) pkg.license = 'MIT';
 if (!pkg.keywords) pkg.keywords = [];
 if (!pkg.main || pkg.main === 'index.js') pkg.main = 'src/main.ts';

@@ -1,16 +1,16 @@
-# create-checks
+# create-tskickstart
 
 A zero-config scaffolding CLI that wires **ESLint + Prettier + TypeScript** into any Node.js project — and optionally sets up **Vitest**, **Husky**, **lint-staged**, **Commitlint**, **CSpell**, and **Secretlint** — in one interactive command.
 
 ```sh
-npm create @jeportie/checks
+npm create @jeportie/tskickstart
 ```
 
 ---
 
 ## What it does
 
-Running `npm create @jeportie/checks` inside an existing project will ask you a series of questions and then:
+Running `npm create @jeportie/tskickstart` inside an existing project will ask you a series of questions and then:
 
 1. **Ensure `package.json` exists** — creates one with `npm init -y` if missing, or patches `"type": "module"` if it is already there but missing that field
 2. **Install** ESLint, Prettier, TypeScript and their plugins as dev dependencies
@@ -20,11 +20,12 @@ Running `npm create @jeportie/checks` inside an existing project will ask you a 
 
 ### Interactive prompts
 
-| Prompt                       | What it sets up                                         |
-| ---------------------------- | ------------------------------------------------------- |
-| **Select more lint options** | Multi-select: `cspell`, `secretlint`, `commitlint`      |
-| **Set up Vitest?**           | Optional test runner — choose Native or Coverage preset |
-| **Set up pre-commit hook?**  | Husky + lint-staged wired to your selected tools        |
+| Prompt | What it sets up |
+| --- | --- |
+| **Your name** | Reads from `git config github.user` (then `user.name`); added to `package.json` and cspell |
+| **Select more lint options** | Multi-select: `cspell`, `secretlint`, `commitlint` |
+| **Set up Vitest?** | Optional test runner — choose Native or Coverage preset |
+| **Set up pre-commit hook?** | Husky + lint-staged wired to your selected tools |
 
 All existing files are left untouched (the CLI skips them with a notice).
 
@@ -34,7 +35,7 @@ All existing files are left untouched (the CLI skips them with a notice).
 
 ```sh
 # Inside your existing project
-npm create @jeportie/checks
+npm create @jeportie/tskickstart
 
 # Run all checks at once
 npm run check
@@ -60,18 +61,20 @@ npm run test:coverage
 ## How it works internally
 
 ```
-npm create @jeportie/checks
+npm create @jeportie/tskickstart
         │
-        └─▶ npm downloads the create-checks package
+        └─▶ npm downloads the create-tskickstart package
             └─▶ node runs ./src/index.js  (registered via "bin" in package.json)
                 │
-                ├─ 1. prompt — lint options (cspell / secretlint / commitlint)
-                ├─ 2. prompt — Vitest preset (none / native / coverage)
-                ├─ 3. prompt — pre-commit hook (husky + lint-staged)
-                ├─ 4. ensure package.json exists and has "type": "module"
-                ├─ 5. npm install -D eslint prettier ... (+ selected optional deps)
-                ├─ 6. copy template config files → YOUR project root
-                └─ 7. inject scripts + lint-staged config → YOUR package.json
+                ├─ 1. read author name (git config github.user → user.name → prompt if missing)
+                ├─ 2. prompt — lint options (cspell / secretlint / commitlint)
+                ├─ 3. prompt — Vitest preset (none / native / coverage)
+                ├─ 4. prompt — pre-commit hook (husky + lint-staged)
+                ├─ 5. ensure package.json exists and has "type": "module"
+                ├─ 6. npm install -D eslint prettier ... (+ selected optional deps)
+                ├─ 7. copy template config files → YOUR project root
+                ├─ 8. create src/main.ts (and test/ if Vitest chosen)
+                └─ 9. inject scripts + author + lint-staged config → YOUR package.json
 ```
 
 ### Template path resolution
@@ -83,7 +86,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 ```
 
-- `__dirname` always points to `create-checks/src/` — the CLI's own files, wherever npm installed them
+- `__dirname` always points to `create-tskickstart/src/` — the CLI's own files, wherever npm installed them
 - `cwd` is **your** project's directory — where files get copied and `package.json` gets updated
 
 This separation is what lets a `create-*` tool safely write into an unrelated target directory.
@@ -92,7 +95,7 @@ This separation is what lets a `create-*` tool safely write into an unrelated ta
 
 ```json
 "bin": {
-  "create-checks": "./src/index.js"
+  "create-tskickstart": "./src/index.js"
 }
 ```
 
@@ -322,6 +325,12 @@ VITEST_PRESET=native node ./src/index.js
 VITEST_PRESET=coverage node ./src/index.js
 ```
 
+Set `AUTHOR_NAME` to bypass the git config lookup and author prompt:
+
+```sh
+AUTHOR_NAME="Jane Doe" node ./src/index.js
+```
+
 Set `NO_INSTALL=1` to skip all `npm install` calls (useful for testing):
 
 ```sh
@@ -332,13 +341,7 @@ NO_INSTALL=1 node ./src/index.js
 
 ## How to release
 
-This repo is pre-configured with [semantic-release](https://semantic-release.gitbook.io/semantic-release/).
-
-### One-time setup
-
-1. Create an **npm access token** at [npmjs.com → Access Tokens](https://www.npmjs.com/settings/~/tokens) (type: **Automation**)
-2. Add it as a secret named `NPM_TOKEN` in your GitHub repo under **Settings → Secrets → Actions**
-3. `GITHUB_TOKEN` is provided automatically — no action needed
+This repo uses [semantic-release](https://semantic-release.gitbook.io/semantic-release/). Requires `NPM_TOKEN` and `GITHUB_TOKEN` secrets in the repo.
 
 ### Release flow
 
@@ -373,18 +376,7 @@ chore: upgrade eslint to v9
 
 ## Development
 
-### Requirements
-
-- Node.js 20+ (see `.nvmrc`)
-- npm
-
-### Setup
-
-```sh
-git clone https://github.com/jeportie/create-checks.git
-cd create-checks
-npm install
-```
+Node.js 20+ required. Run `npm install` after cloning.
 
 ### Run tests
 
@@ -394,25 +386,10 @@ npm run test:integration  # integration tests only
 npm run test:coverage     # with coverage report
 ```
 
-### Test a local build
-
-```sh
-mkdir /tmp/my-test-project
-cd /tmp/my-test-project
-npm init -y
-node /path/to/create-checks/src/index.js
-```
-
-To test non-interactively:
-
-```sh
-VITEST_PRESET=coverage NO_INSTALL=1 node /path/to/create-checks/src/index.js
-```
-
 ### Project structure
 
 ```
-create-checks/
+create-tskickstart/
 ├── src/
 │   ├── index.js                          # CLI entrypoint (#!/usr/bin/env node)
 │   └── templates/

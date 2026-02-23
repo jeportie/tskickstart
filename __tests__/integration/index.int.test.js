@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliPath = resolve(__dirname, '../../src/index.js');
 
 function createTmpProject() {
-  const dir = mkdtempSync(join(tmpdir(), 'create-checks-'));
+  const dir = mkdtempSync(join(tmpdir(), 'tskickstart-'));
   writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'test-project', version: '1.0.0' }, null, 2));
   return dir;
 }
@@ -23,7 +23,7 @@ function runCli(cwd, extraEnv = {}) {
   });
 }
 
-describe('create-checks CLI', () => {
+describe('tskickstart CLI', () => {
   let tmpDir;
 
   afterEach(() => {
@@ -337,5 +337,53 @@ describe('create-checks CLI', () => {
     runCli(tmpDir);
     const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
     expect(pkg.scripts).toHaveProperty('prepare', 'husky');
+  });
+
+  /* ---------------- src/main.ts and test/ scaffolding ---------------- */
+
+  it('creates src/main.ts in the target directory', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'src', 'main.ts'))).toBe(true);
+  });
+
+  it('does not overwrite an existing src/main.ts', () => {
+    tmpDir = createTmpProject();
+    mkdirSync(join(tmpDir, 'src'), { recursive: true });
+    writeFileSync(join(tmpDir, 'src', 'main.ts'), '// existing\n');
+    runCli(tmpDir);
+    expect(readFileSync(join(tmpDir, 'src', 'main.ts'), 'utf-8')).toBe('// existing\n');
+  });
+
+  it('creates test/ directory when a vitest preset is selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    expect(existsSync(join(tmpDir, 'test'))).toBe(true);
+  });
+
+  it('does not create test/ directory when vitest is not selected', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'test'))).toBe(false);
+  });
+
+  /* ---------------- author name (AUTHOR_NAME env var) ---------------- */
+
+  it('sets author in package.json from AUTHOR_NAME env var', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { AUTHOR_NAME: 'alice' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.author).toBe('alice');
+  });
+
+  it('does not overwrite an existing author in package.json', () => {
+    tmpDir = createTmpProject();
+    writeFileSync(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'test-project', version: '1.0.0', author: 'jane' }, null, 2),
+    );
+    runCli(tmpDir, { AUTHOR_NAME: 'alice' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.author).toBe('jane');
   });
 });

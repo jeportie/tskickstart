@@ -1,6 +1,6 @@
 # ESLint Rules Reference
 
-Rules enforced by `create-checks`. All rules apply to TypeScript projects using ESLint flat config.
+Rules enforced by `tskickstart`. All rules apply to TypeScript projects using ESLint flat config.
 
 ---
 

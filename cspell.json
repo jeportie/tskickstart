@@ -26,6 +26,8 @@
     "secretlintrc",
     "tseslint",
     "tsx",
+    "testuser",
+    "tskickstart",
     "typecheck",
     "vite",
     "vitest",
