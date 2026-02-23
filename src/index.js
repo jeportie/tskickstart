@@ -11,6 +11,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 const pkgPath = path.join(cwd, 'package.json');
 
+// Ctrl+C during any inquirer prompt throws ExitPromptError as an unhandled
+// rejection (top-level await). Catch it here for a clean exit.
+process.on('unhandledRejection', (reason) => {
+  if (reason?.name === 'ExitPromptError') {
+    console.log(pc.yellow('\nCancelled.\n'));
+    process.exit(0);
+  }
+});
+
 console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 
 /* ---------------- ADDITIONAL LINT PROMPTS ---------------- */
@@ -204,7 +213,7 @@ console.log(pc.green('→') + `  copying config files...`);
 
 if (!(await fs.pathExists(path.join(cwd, 'tsconfig.base.json')))) {
   await fs.copyFile(path.join(__dirname, 'templates/tsconfig.base.json'), path.join(cwd, 'tsconfig.base.json'));
-  console.log(pc.green('✔') + '  tsconfig.base.json');
+  console.log(pc.green('✔') + '    tsconfig.base.json');
 } else {
   console.log(pc.dim('–') + '    tsconfig.base.json (already exists, skipped)');
 }
@@ -324,6 +333,7 @@ if (setupPrecommit) {
 }
 
 // --- project directories ---
+console.log(pc.green('→') + '  creating project directories:');
 
 const srcDir = path.join(cwd, 'src');
 await fs.ensureDir(srcDir);
