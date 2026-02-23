@@ -1,4 +1,4 @@
-# Contributing to create-tskickstart
+# Contributing to tskickstart
 
 Thank you for your interest in contributing. This document explains how the project is structured, how to add features, and what's expected in a pull request.
 
@@ -14,8 +14,8 @@ Thank you for your interest in contributing. This document explains how the proj
 ### Setup
 
 ```sh
-git clone https://github.com/jeportie/create-tskickstart.git
-cd create-tskickstart
+git clone https://github.com/jeportie/tskickstart.git
+cd tskickstart
 npm install
 ```
 

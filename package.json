@@ -5,7 +5,7 @@
   "author": "jeportie",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jeportie/create-tskickstart.git"
+    "url": "git://github.com/jeportie/tskickstart.git"
   },
   "keywords": [
     "eslint",

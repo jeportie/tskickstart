@@ -1,4 +1,4 @@
-# create-tskickstart
+# tskickstart
 
 A zero-config scaffolding CLI that wires **ESLint + Prettier + TypeScript** into any Node.js project — and optionally sets up **Vitest**, **Husky**, **lint-staged**, **Commitlint**, **CSpell**, and **Secretlint** — in one interactive command.
 
@@ -389,7 +389,7 @@ npm run test:coverage     # with coverage report
 ### Project structure
 
 ```
-create-tskickstart/
+tskickstart/
 ├── src/
 │   ├── index.js                          # CLI entrypoint (#!/usr/bin/env node)
 │   └── templates/
