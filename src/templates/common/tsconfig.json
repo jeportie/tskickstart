@@ -6,13 +6,9 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
   "include": [
     "src",
@@ -23,7 +19,5 @@
     "./*.mjs",
     "./*.cjs"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
