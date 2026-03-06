@@ -1,0 +1,132 @@
+export function orderScripts(scripts) {
+  const scriptOrder = [
+    'test',
+    'check',
+    'format',
+    'lint',
+    'typecheck',
+    'spellcheck',
+    'secretlint',
+    'prepare',
+    'test:unit',
+    'test:integration',
+    'test:coverage',
+    'test:e2e',
+    'test:e2e:ui',
+    'build',
+    'dev',
+    'preview',
+    'start',
+  ];
+
+  const ordered = {};
+  for (const key of scriptOrder) {
+    if (key in scripts) ordered[key] = scripts[key];
+  }
+  for (const key of Object.keys(scripts)) {
+    if (!(key in ordered)) ordered[key] = scripts[key];
+  }
+  return ordered;
+}
+
+export function orderPackageKeys(pkg) {
+  const topLevelOrder = [
+    'name',
+    'description',
+    'version',
+    'author',
+    'license',
+    'keywords',
+    'type',
+    'main',
+    'scripts',
+    'devDependencies',
+    'dependencies',
+  ];
+
+  const organized = {};
+  for (const key of topLevelOrder) {
+    if (key in pkg) organized[key] = pkg[key];
+  }
+  for (const key of Object.keys(pkg)) {
+    if (!topLevelOrder.includes(key) && key !== 'lint-staged') {
+      organized[key] = pkg[key];
+    }
+  }
+  if (pkg['lint-staged']) organized['lint-staged'] = pkg['lint-staged'];
+  return organized;
+}
+
+export function buildScripts(pkg, answers) {
+  const {
+    lintOption = [],
+    vitestPreset,
+    setupPrecommit = true,
+    authorName,
+    projectType,
+    setupPlaywright = false,
+  } = answers;
+
+  const checkParts = ['npm run format', 'npm run lint', 'npm run typecheck'];
+  if (lintOption.includes('cspell')) checkParts.push('npm run spellcheck');
+  if (lintOption.includes('secretlint')) checkParts.push('npm run secretlint');
+  if (vitestPreset === 'native' || vitestPreset === 'coverage') checkParts.push('npm run test');
+
+  pkg.scripts = {
+    ...pkg.scripts,
+    check: checkParts.join(' && '),
+    format: 'prettier . --write',
+    lint: 'eslint .',
+    typecheck: projectType === 'frontend' ? 'tsc -b' : 'tsc --noEmit',
+  };
+
+  if (lintOption.includes('cspell')) {
+    pkg.scripts.spellcheck = 'cspell lint .';
+  }
+
+  if (lintOption.includes('secretlint')) {
+    pkg.scripts.secretlint = 'secretlint **/*';
+  }
+
+  if (setupPrecommit) {
+    pkg.scripts.prepare = 'husky';
+  }
+
+  if (vitestPreset === 'native' || vitestPreset === 'coverage') {
+    pkg.scripts.test = 'vitest --run';
+    pkg.scripts['test:unit'] = 'vitest unit --run';
+    pkg.scripts['test:integration'] = 'vitest int --run';
+  }
+
+  if (vitestPreset === 'coverage') {
+    pkg.scripts['test:coverage'] = 'vitest --coverage --run';
+  }
+
+  if (projectType === 'frontend') {
+    pkg.scripts.dev = 'vite';
+    pkg.scripts.build = 'tsc -b && vite build';
+    pkg.scripts.preview = 'vite preview';
+  }
+
+  if (setupPlaywright) {
+    pkg.scripts['test:e2e'] = 'npx playwright test';
+    pkg.scripts['test:e2e:ui'] = 'npx playwright test --ui';
+  }
+
+  if (setupPrecommit) {
+    const lintStagedCmds = ['npm run format', 'npm run lint'];
+    if (lintOption.includes('cspell')) lintStagedCmds.push('npm run spellcheck');
+    if (lintOption.includes('secretlint')) lintStagedCmds.push('npm run secretlint');
+    pkg['lint-staged'] = { '**/*': lintStagedCmds };
+  }
+
+  if (authorName && !pkg.author) pkg.author = authorName;
+  if (!pkg.license) pkg.license = 'MIT';
+  if (!pkg.keywords) pkg.keywords = [];
+  if (projectType !== 'frontend' && (!pkg.main || pkg.main === 'index.js')) {
+    pkg.main = 'src/main.ts';
+  }
+
+  pkg.scripts = orderScripts(pkg.scripts);
+  return pkg;
+}
