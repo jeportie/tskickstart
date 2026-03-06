@@ -20,8 +20,12 @@ if (projectType === 'frontend') {
 }
 
 if (projectType === 'frontend' || projectType === 'fullstack') {
-  const { askPlaywrightQuestion } = await import('./prompts/playwright.js');
-  Object.assign(answers, await askPlaywrightQuestion(projectType));
+  try {
+    const { askPlaywrightQuestion } = await import('./prompts/playwright.js');
+    Object.assign(answers, await askPlaywrightQuestion(projectType));
+  } catch {
+    // Playwright module is optional until feature branch is merged.
+  }
 }
 
 await generateCommon(answers, process.cwd());
@@ -32,8 +36,12 @@ if (projectType === 'frontend') {
 }
 
 if (answers.setupPlaywright) {
-  const { generatePlaywright } = await import('./generators/playwright.js');
-  await generatePlaywright(answers, process.cwd());
+  try {
+    const { generatePlaywright } = await import('./generators/playwright.js');
+    await generatePlaywright(answers, process.cwd());
+  } catch {
+    // Playwright module is optional until feature branch is merged.
+  }
 }
 
 console.log(pc.green('\n✅ Done!\n'));
