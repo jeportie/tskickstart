@@ -11,7 +11,7 @@ console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 const projectType = await askProjectType();
 const answers = {
   projectType,
-  ...(await askCommonQuestions()),
+  ...(await askCommonQuestions(projectType)),
 };
 
 if (projectType === 'frontend') {
@@ -20,15 +20,6 @@ if (projectType === 'frontend') {
     Object.assign(answers, await askFrontendQuestions());
   } catch {
     // Frontend module is optional until feature branch is merged.
-  }
-}
-
-if (projectType === 'frontend' || projectType === 'fullstack') {
-  try {
-    const { askPlaywrightQuestion } = await import('./prompts/playwright.js');
-    Object.assign(answers, await askPlaywrightQuestion(projectType));
-  } catch {
-    // Playwright module is optional until feature branch is merged.
   }
 }
 

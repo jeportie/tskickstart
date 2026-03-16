@@ -55,7 +55,7 @@ export async function installDeps(answers, options = {}) {
   if (projectType === 'frontend') {
     devDeps.push(
       'vite',
-      '@vitejs/plugin-react',
+      '@vitejs/plugin-react@^5',
       '@testing-library/react',
       '@testing-library/jest-dom',
       '@testing-library/user-event',

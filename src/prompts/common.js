@@ -1,8 +1,9 @@
 import { execa } from 'execa';
 
 import { prompt } from '../utils/prompt.js';
+import { askPlaywrightQuestion } from './playwright.js';
 
-export async function askCommonQuestions() {
+export async function askCommonQuestions(projectType) {
   let lintOption = [];
   if (process.stdin.isTTY) {
     const result = await prompt([
@@ -42,6 +43,8 @@ export async function askCommonQuestions() {
       vitestPreset = preset;
     }
   }
+
+  const { setupPlaywright } = await askPlaywrightQuestion(projectType);
 
   let setupPrecommit = true;
   if (process.stdin.isTTY) {
@@ -91,6 +94,7 @@ export async function askCommonQuestions() {
   return {
     lintOption,
     vitestPreset,
+    setupPlaywright,
     setupPrecommit,
     authorName,
   };

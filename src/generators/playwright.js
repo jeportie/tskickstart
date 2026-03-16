@@ -33,7 +33,8 @@ async function addPlaywrightScripts(pkgPath) {
   await fs.writeJson(pkgPath, orderPackageKeys(pkg), { spaces: 2 });
 }
 
-export async function generatePlaywright(_answers, cwd = process.cwd()) {
+export async function generatePlaywright(answers, cwd = process.cwd()) {
+  const { projectType } = answers;
   console.log(pc.green('→') + '  copying Playwright files...');
 
   await copyIfMissing(
@@ -43,11 +44,9 @@ export async function generatePlaywright(_answers, cwd = process.cwd()) {
   );
 
   await fs.ensureDir(path.join(cwd, 'e2e'));
-  await copyIfMissing(
-    templatePath('playwright', 'e2e/example.spec.ts'),
-    path.join(cwd, 'e2e/example.spec.ts'),
-    'e2e/example.spec.ts',
-  );
+
+  const specFile = projectType === 'frontend' ? 'e2e/welcome.spec.ts' : 'e2e/example.spec.ts';
+  await copyIfMissing(templatePath('playwright', specFile), path.join(cwd, specFile), specFile);
 
   await appendGitignoreEntries(cwd);
   await addPlaywrightScripts(path.join(cwd, 'package.json'));
