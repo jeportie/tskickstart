@@ -23,6 +23,15 @@ if (projectType === 'frontend') {
   }
 }
 
+if (projectType === 'npm-lib') {
+  try {
+    const { askNpmLibQuestions } = await import('./prompts/npm-lib.js');
+    Object.assign(answers, await askNpmLibQuestions());
+  } catch {
+    // npm-lib module is optional until feature branch is merged.
+  }
+}
+
 await generateCommon(answers, process.cwd());
 
 if (projectType === 'frontend') {
@@ -31,6 +40,15 @@ if (projectType === 'frontend') {
     await generateFrontend(answers, process.cwd());
   } catch {
     // Frontend module is optional until feature branch is merged.
+  }
+}
+
+if (projectType === 'npm-lib') {
+  try {
+    const { generateNpmLib } = await import('./generators/npm-lib.js');
+    await generateNpmLib(answers, process.cwd());
+  } catch {
+    // npm-lib module is optional until feature branch is merged.
   }
 }
 

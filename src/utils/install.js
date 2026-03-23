@@ -69,6 +69,20 @@ export async function installDeps(answers, options = {}) {
     );
   }
 
+  if (projectType === 'npm-lib') {
+    devDeps.push('tsup');
+    if (answers.setupSemanticRelease) {
+      devDeps.push(
+        'semantic-release',
+        '@semantic-release/commit-analyzer',
+        '@semantic-release/release-notes-generator',
+        '@semantic-release/npm',
+        '@semantic-release/github',
+        'conventional-changelog-conventionalcommits',
+      );
+    }
+  }
+
   if (setupPlaywright) {
     devDeps.push('@playwright/test');
   }
