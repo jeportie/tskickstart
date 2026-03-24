@@ -41,6 +41,7 @@ export function orderPackageKeys(pkg) {
     'main',
     'module',
     'types',
+    'bin',
     'exports',
     'files',
     'scripts',
@@ -116,6 +117,12 @@ export function buildScripts(pkg, answers) {
     pkg.scripts.build = 'tsup';
   }
 
+  if (projectType === 'cli') {
+    pkg.scripts.build = 'tsup';
+    pkg.scripts.dev = 'tsx src/index.ts';
+    pkg.scripts.start = 'node dist/index.cjs';
+  }
+
   if (setupPlaywright) {
     pkg.scripts['test:e2e'] = 'npx playwright test';
     pkg.scripts['test:e2e:ui'] = 'npx playwright test --ui';
@@ -131,7 +138,7 @@ export function buildScripts(pkg, answers) {
   if (authorName && !pkg.author) pkg.author = authorName;
   if (!pkg.license) pkg.license = 'MIT';
   if (!pkg.keywords) pkg.keywords = [];
-  if (!['frontend', 'npm-lib'].includes(projectType) && (!pkg.main || pkg.main === 'index.js')) {
+  if (!['frontend', 'npm-lib', 'cli'].includes(projectType) && (!pkg.main || pkg.main === 'index.js')) {
     pkg.main = 'src/main.ts';
   }
 

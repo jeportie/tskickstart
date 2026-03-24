@@ -124,7 +124,7 @@ export async function generateCommon(answers, cwd = process.cwd()) {
 
   console.log(pc.green('→') + '  creating project directories:');
 
-  if (!isFrontend) {
+  if (!isFrontend && projectType !== 'cli') {
     const srcDir = path.join(cwd, 'src');
     await fs.ensureDir(srcDir);
     const mainTs = path.join(srcDir, 'main.ts');

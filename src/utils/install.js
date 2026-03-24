@@ -83,11 +83,25 @@ export async function installDeps(answers, options = {}) {
     }
   }
 
+  if (projectType === 'cli') {
+    devDeps.push('tsup', 'tsx');
+  }
+
   if (setupPlaywright) {
     devDeps.push('@playwright/test');
   }
 
   const prodDeps = [...extraProdDeps];
+  if (projectType === 'cli') {
+    if (answers.cliFramework === 'inquirer') {
+      prodDeps.push('inquirer');
+    } else if (answers.cliFramework === 'clack') {
+      prodDeps.push('@clack/prompts');
+    } else {
+      prodDeps.push('commander');
+    }
+  }
+
   if (projectType === 'frontend') {
     prodDeps.push(
       'react',

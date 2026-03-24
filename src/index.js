@@ -32,6 +32,15 @@ if (projectType === 'npm-lib') {
   }
 }
 
+if (projectType === 'cli') {
+  try {
+    const { askCliQuestions } = await import('./prompts/cli.js');
+    Object.assign(answers, await askCliQuestions());
+  } catch {
+    // CLI module is optional until feature branch is merged.
+  }
+}
+
 await generateCommon(answers, process.cwd());
 
 if (projectType === 'frontend') {
@@ -49,6 +58,15 @@ if (projectType === 'npm-lib') {
     await generateNpmLib(answers, process.cwd());
   } catch {
     // npm-lib module is optional until feature branch is merged.
+  }
+}
+
+if (projectType === 'cli') {
+  try {
+    const { generateCli } = await import('./generators/cli.js');
+    await generateCli(answers, process.cwd());
+  } catch {
+    // CLI module is optional until feature branch is merged.
   }
 }
 
