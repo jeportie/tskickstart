@@ -1,6 +1,6 @@
 import { execa } from 'execa';
 
-import { prompt, BACK } from '../utils/prompt.js';
+import { prompt } from '../utils/prompt.js';
 import { askPlaywrightQuestion } from './playwright.js';
 
 export async function askCommonQuestions(projectType) {
@@ -8,26 +8,13 @@ export async function askCommonQuestions(projectType) {
   if (process.stdin.isTTY) {
     const result = await prompt([
       {
-        type: 'list',
-        name: 'action',
-        message: 'Continue to lint options or go back?',
-        choices: [
-          { name: 'Continue', value: 'continue' },
-          { name: '← Back', value: BACK },
-        ],
-      },
-    ]);
-    if (result.action === BACK) return BACK;
-
-    const lintResult = await prompt([
-      {
         type: 'checkbox',
         name: 'lintOption',
         message: 'Select more lint options',
         choices: ['cspell', 'secretlint', 'commitlint'],
       },
     ]);
-    lintOption = lintResult.lintOption;
+    lintOption = result.lintOption;
   }
 
   let vitestPreset = process.env.VITEST_PRESET;

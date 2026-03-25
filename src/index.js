@@ -8,7 +8,16 @@ import { askProjectType } from './prompts/project-type.js';
 import { offerReadmePreview } from './utils/readme.js';
 import { runWizard } from './utils/wizard.js';
 
-console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
+console.log(
+  pc.cyan(`
+████████ ███████ ██   ██ ██  ██████ ██   ██ ███████ ████████  █████  ██████  ████████
+   ██    ██      ██  ██  ██ ██      ██  ██  ██         ██    ██   ██ ██   ██    ██
+   ██    ███████ █████   ██ ██      █████   ███████    ██    ███████ ██████     ██
+   ██         ██ ██  ██  ██ ██      ██  ██       ██    ██    ██   ██ ██   ██    ██
+   ██    ███████ ██   ██ ██  ██████ ██   ██ ███████    ██    ██   ██ ██   ██    ██
+`),
+);
+console.log(pc.cyan('🔧 tskickstart — setting up the project...\n'));
 
 const typeSpecificAskers = {
   backend: () => import('./prompts/backend.js').then((m) => m.askBackendQuestions()),

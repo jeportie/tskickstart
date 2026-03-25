@@ -1,3 +1,5 @@
+import pc from 'picocolors';
+
 import { prompt, BACK } from '../utils/prompt.js';
 
 export async function askBackendQuestions() {
@@ -15,8 +17,7 @@ export async function askBackendQuestions() {
           { name: 'Fastify — production-proven, excellent performance', value: 'fastify' },
           { name: 'Express — legacy/familiarity', value: 'express' },
           { name: 'Elysia — Bun-native, TypeScript-first, fast', value: 'elysia' },
-          { type: 'separator' },
-          { name: '← Back', value: BACK },
+          { name: pc.dim('← Back'), value: BACK },
         ],
       },
     ]);

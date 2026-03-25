@@ -176,8 +176,8 @@ function getGettingStarted(answers) {
   const { projectType, backendFramework } = answers;
   const lines = [];
 
-  lines.push('Clone the repository and install dependencies:\n');
-  lines.push(codeBlock('bash', 'git clone <repository-url>\ncd <project-directory>\nmise install\nnpm install'));
+  lines.push('Install tool versions and dependencies:\n');
+  lines.push(codeBlock('bash', 'mise install\nnpm install'));
 
   if (projectType === 'backend') {
     const port = '3000';
