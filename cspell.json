@@ -45,7 +45,8 @@
     "xcworkspace",
     "gradlew",
     "Dtest",
-    "myapp"
+    "myapp",
+    "Pressable"
   ],
   "ignorePaths": [
     ".vscode/",
