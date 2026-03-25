@@ -228,4 +228,13 @@ describe('app project scaffold', () => {
     expect(existsSync(join(tmpDir, 'metro.config.js'))).toBe(false);
     expect(existsSync(join(tmpDir, '.detoxrc.js'))).toBe(false);
   });
+
+  it('creates README.md with app-specific content', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { APP_JEST: '1', APP_DETOX: '1' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('mobile application');
+    expect(content).toContain('Expo');
+    expect(content).toContain('React Native');
+  });
 });

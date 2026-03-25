@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { copyIfMissing, templatePath } from '../utils/file-system.js';
 import { installDeps } from '../utils/install.js';
+import { writeReadme } from '../utils/readme.js';
 import { buildScripts, orderPackageKeys } from '../utils/scripts.js';
 
 async function ensurePackageJson(pkgPath) {
@@ -195,5 +196,12 @@ describe('helloWorld', () => {
   console.log(pc.green('→') + '  scripts added in package.json:');
   for (const script of addedScripts) {
     console.log(pc.green('✔') + `    ${script}`);
+  }
+
+  const wroteReadme = await writeReadme(answers, cwd);
+  if (wroteReadme) {
+    console.log(pc.green('✔') + '    README.md');
+  } else {
+    console.log(pc.dim('–') + '    README.md (already exists, skipped)');
   }
 }

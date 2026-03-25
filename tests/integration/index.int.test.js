@@ -411,4 +411,26 @@ describe('tskickstart CLI', () => {
     const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
     expect(pkg.author).toBe('jane');
   });
+
+  /* ---------------- README.md generation ---------------- */
+
+  it('creates README.md in the target directory', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'README.md'))).toBe(true);
+  });
+
+  it('does not overwrite an existing README.md', () => {
+    tmpDir = createTmpProject();
+    writeFileSync(join(tmpDir, 'README.md'), 'existing readme');
+    runCli(tmpDir);
+    expect(readFileSync(join(tmpDir, 'README.md'), 'utf-8')).toBe('existing readme');
+  });
+
+  it('README.md contains project name from package.json', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('test-project');
+  });
 });

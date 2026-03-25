@@ -160,4 +160,13 @@ describe('cli project scaffold', () => {
     const content = readFileSync(join(tmpDir, 'tests/unit/hello.unit.test.ts'), 'utf-8');
     expect(content).toBe('existing');
   });
+
+  it('creates README.md with CLI-specific content', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { CLI_FRAMEWORK: 'commander', CLI_NAME: 'my-tool' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('cli tool');
+    expect(content).toContain('Commander');
+    expect(content).toContain('tsup');
+  });
 });

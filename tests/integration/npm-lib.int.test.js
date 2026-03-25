@@ -125,4 +125,13 @@ describe('npm-lib project scaffold', () => {
     expect(existsSync(join(tmpDir, 'eslint.config.js'))).toBe(true);
     expect(existsSync(join(tmpDir, 'src', 'main.ts'))).toBe(true);
   });
+
+  it('creates README.md with npm-lib-specific content', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { SEMANTIC_RELEASE: '1' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('npm library');
+    expect(content).toContain('tsup');
+    expect(content).toContain('semantic-release');
+  });
 });

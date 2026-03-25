@@ -135,4 +135,21 @@ describe('frontend starter scaffold', () => {
     const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
     expect(pkg.scripts.check).toBe('npm run format && npm run lint && npm run typecheck');
   });
+
+  it('creates README.md with frontend-specific content', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('frontend application');
+    expect(content).toContain('React');
+    expect(content).toContain('Vite');
+    expect(content).toContain('Tailwind');
+  });
+
+  it('does not overwrite existing README.md', () => {
+    tmpDir = createTmpProject();
+    writeFileSync(join(tmpDir, 'README.md'), 'existing');
+    runCli(tmpDir);
+    expect(readFileSync(join(tmpDir, 'README.md'), 'utf-8')).toBe('existing');
+  });
 });

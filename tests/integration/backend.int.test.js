@@ -208,4 +208,20 @@ describe('backend project scaffold', () => {
     const content = readFileSync(join(tmpDir, 'tests/unit/server.unit.test.ts'), 'utf-8');
     expect(content).toContain('app.handle');
   });
+
+  it('creates README.md with backend-specific content', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '0' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('backend api');
+    expect(content).toContain('Hono');
+    expect(content).toContain('Zod');
+  });
+
+  it('README.md mentions Docker when enabled', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).toContain('Docker');
+  });
 });
