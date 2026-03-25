@@ -5,7 +5,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["jest", "react", "node"]
   },
   "include": ["src", "tests", "*.ts", "*.tsx"]
 }

@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,6 +63,7 @@ describe('app project scaffold', () => {
     const content = readFileSync(join(tmpDir, 'eslint.config.js'), 'utf-8');
     expect(content).toContain('*.cjs');
     expect(content).toContain('commonjs');
+    expect(content).toContain('no-require-imports');
   });
 
   it('creates .mise.toml', () => {
@@ -92,6 +93,30 @@ describe('app project scaffold', () => {
     expect(existsSync(join(tmpDir, 'src/navigation/index.tsx'))).toBe(true);
   });
 
+  it('creates index.ts entry point with registerRootComponent', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, 'index.ts'))).toBe(true);
+    const content = readFileSync(join(tmpDir, 'index.ts'), 'utf-8');
+    expect(content).toContain('registerRootComponent');
+    expect(content).toContain('./src/App');
+  });
+
+  it('sets main field to index.ts', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.main).toBe('index.ts');
+  });
+
+  it('creates .npmrc with legacy-peer-deps', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    expect(existsSync(join(tmpDir, '.npmrc'))).toBe(true);
+    const content = readFileSync(join(tmpDir, '.npmrc'), 'utf-8');
+    expect(content).toContain('legacy-peer-deps=true');
+  });
+
   it('adds expo start script', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir);
@@ -116,6 +141,15 @@ describe('app project scaffold', () => {
     expect(existsSync(join(tmpDir, 'tests/unit/HomeScreen.unit.test.tsx'))).toBe(true);
   });
 
+  it('creates jest.config.cjs when APP_JEST=1', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { APP_JEST: '1' });
+    expect(existsSync(join(tmpDir, 'jest.config.cjs'))).toBe(true);
+    const content = readFileSync(join(tmpDir, 'jest.config.cjs'), 'utf-8');
+    expect(content).toContain('jest-expo');
+    expect(content).toContain('setupFilesAfterEnv');
+  });
+
   it('adds jest test script when APP_JEST=1', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { APP_JEST: '1' });
@@ -135,6 +169,7 @@ describe('app project scaffold', () => {
     runCli(tmpDir, { APP_JEST: '0' });
     expect(existsSync(join(tmpDir, 'tests/setup.ts'))).toBe(false);
     expect(existsSync(join(tmpDir, 'tests/unit/HomeScreen.unit.test.tsx'))).toBe(false);
+    expect(existsSync(join(tmpDir, 'jest.config.cjs'))).toBe(false);
   });
 
   it('does NOT add test script when APP_JEST=0', () => {
@@ -158,6 +193,7 @@ describe('app project scaffold', () => {
     runCli(tmpDir, { APP_DETOX: '1' });
     expect(existsSync(join(tmpDir, '.detoxrc.cjs'))).toBe(true);
     expect(existsSync(join(tmpDir, 'tests/e2e/firstTest.e2e.ts'))).toBe(true);
+    expect(existsSync(join(tmpDir, 'tests/e2e/jest.config.cjs'))).toBe(true);
   });
 
   it('adds detox e2e scripts when APP_DETOX=1', () => {
@@ -173,6 +209,7 @@ describe('app project scaffold', () => {
     runCli(tmpDir, { APP_DETOX: '0' });
     expect(existsSync(join(tmpDir, '.detoxrc.cjs'))).toBe(false);
     expect(existsSync(join(tmpDir, 'tests/e2e/firstTest.e2e.ts'))).toBe(false);
+    expect(existsSync(join(tmpDir, 'tests/e2e/jest.config.cjs'))).toBe(false);
   });
 
   it('does NOT add detox scripts when APP_DETOX=0', () => {
@@ -192,6 +229,31 @@ describe('app project scaffold', () => {
     expect(existsSync(join(tmpDir, 'tests/unit/HomeScreen.unit.test.tsx'))).toBe(true);
     expect(existsSync(join(tmpDir, '.detoxrc.cjs'))).toBe(true);
     expect(existsSync(join(tmpDir, 'tests/e2e/firstTest.e2e.ts'))).toBe(true);
+  });
+
+  it('overwrites stale app template files from previous scaffolds', () => {
+    tmpDir = createTmpProject();
+
+    writeFileSync(join(tmpDir, 'eslint.config.js'), 'export default [];\n');
+
+    mkdirSync(join(tmpDir, 'src'), { recursive: true });
+    writeFileSync(join(tmpDir, 'src/App.tsx'), "import { BrowserRouter } from 'react-router';\n");
+
+    mkdirSync(join(tmpDir, 'tests'), { recursive: true });
+    writeFileSync(join(tmpDir, 'tests/setup.ts'), "import '@testing-library/jest-dom/vitest';\n");
+
+    runCli(tmpDir, { APP_JEST: '1', APP_DETOX: '0' });
+
+    const eslintContent = readFileSync(join(tmpDir, 'eslint.config.js'), 'utf-8');
+    expect(eslintContent).toContain("sourceType: 'commonjs'");
+
+    const appContent = readFileSync(join(tmpDir, 'src/App.tsx'), 'utf-8');
+    expect(appContent).toContain('NavigationContainer');
+    expect(appContent).not.toContain('react-router');
+
+    const setupContent = readFileSync(join(tmpDir, 'tests/setup.ts'), 'utf-8');
+    expect(setupContent).toContain('Jest setup file');
+    expect(setupContent).not.toContain('jest-dom/vitest');
   });
 
   // --- Negation tests ---

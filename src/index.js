@@ -5,14 +5,23 @@ import pc from 'picocolors';
 import { generateCommon } from './generators/common.js';
 import { askCommonQuestions } from './prompts/common.js';
 import { askProjectType } from './prompts/project-type.js';
+import { offerReadmePreview } from './utils/readme.js';
 
 console.log(pc.cyan('\n🔧 tskickstart — setting up the project...\n'));
 
 const projectType = await askProjectType();
-const answers = {
-  projectType,
-  ...(await askCommonQuestions(projectType)),
-};
+const answers = { projectType };
+
+if (projectType === 'backend') {
+  try {
+    const { askBackendQuestions } = await import('./prompts/backend.js');
+    Object.assign(answers, await askBackendQuestions());
+  } catch {
+    // Backend module is optional until feature branch is merged.
+  }
+}
+
+Object.assign(answers, await askCommonQuestions(projectType));
 
 if (projectType === 'frontend') {
   try {
@@ -38,15 +47,6 @@ if (projectType === 'cli') {
     Object.assign(answers, await askCliQuestions());
   } catch {
     // CLI module is optional until feature branch is merged.
-  }
-}
-
-if (projectType === 'backend') {
-  try {
-    const { askBackendQuestions } = await import('./prompts/backend.js');
-    Object.assign(answers, await askBackendQuestions());
-  } catch {
-    // Backend module is optional until feature branch is merged.
   }
 }
 
@@ -114,5 +114,7 @@ if (answers.setupPlaywright) {
     // Playwright module is optional until feature branch is merged.
   }
 }
+
+await offerReadmePreview(process.cwd());
 
 console.log(pc.green('\n✅ Done!\n'));

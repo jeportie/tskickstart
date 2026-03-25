@@ -22,7 +22,7 @@ async function appendGitignoreEntries(cwd) {
 }
 
 export async function generateBackend(answers, cwd) {
-  const { backendFramework = 'hono', setupDocker = true } = answers;
+  const { backendFramework = 'hono', setupDocker = true, setupZod = true } = answers;
 
   console.log(pc.green('→') + '  copying backend starter files...');
 
@@ -45,18 +45,21 @@ export async function generateBackend(answers, cwd) {
     console.log(pc.dim('–') + '    src/index.ts (already exists, skipped)');
   }
 
-  // Zod env validation
-  await copyIfMissing(backendTemplatePath('src/env.ts'), path.join(cwd, 'src/env.ts'), 'src/env.ts');
+  // Environment config (Zod optional)
+  const envTemplate = setupZod ? 'src/env.ts' : 'src/env.no-zod.ts';
+  await copyIfMissing(backendTemplatePath(envTemplate), path.join(cwd, 'src/env.ts'), 'src/env.ts');
 
   // Docker files
   if (setupDocker) {
-    await copyIfMissing(backendTemplatePath('Dockerfile'), path.join(cwd, 'Dockerfile'), 'Dockerfile');
+    const dockerfileTemplate = backendFramework === 'elysia' ? 'Dockerfile.elysia' : 'Dockerfile';
+    await copyIfMissing(backendTemplatePath(dockerfileTemplate), path.join(cwd, 'Dockerfile'), 'Dockerfile');
     await copyIfMissing(
       backendTemplatePath('docker-compose.yml'),
       path.join(cwd, 'docker-compose.yml'),
       'docker-compose.yml',
     );
     await copyIfMissing(backendTemplatePath('.dockerignore'), path.join(cwd, '.dockerignore'), '.dockerignore');
+    await copyIfMissing(backendTemplatePath('Makefile'), path.join(cwd, 'Makefile'), 'Makefile');
     await appendGitignoreEntries(cwd);
   }
 

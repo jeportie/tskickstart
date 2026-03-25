@@ -27,15 +27,29 @@ async function ensurePackageJson(pkgPath) {
   }
 }
 
-async function appendAuthorToCspell(cwd, authorName) {
-  if (!authorName) return;
-
+async function appendWordsToCspell(cwd, words) {
   const cspellPath = path.join(cwd, 'cspell.json');
+  if (!(await fs.pathExists(cspellPath))) return;
+
   const cspellJson = await fs.readJson(cspellPath);
   if (!cspellJson.words) cspellJson.words = [];
 
-  for (const word of authorName.split(/\s+/).filter(Boolean)) {
+  for (const word of words) {
     if (!cspellJson.words.includes(word)) cspellJson.words.push(word);
+  }
+
+  await fs.writeJson(cspellPath, cspellJson, { spaces: 2 });
+}
+
+async function appendIgnorePathsToCspell(cwd, ignorePaths) {
+  const cspellPath = path.join(cwd, 'cspell.json');
+  if (!(await fs.pathExists(cspellPath))) return;
+
+  const cspellJson = await fs.readJson(cspellPath);
+  if (!cspellJson.ignorePaths) cspellJson.ignorePaths = [];
+
+  for (const value of ignorePaths) {
+    if (!cspellJson.ignorePaths.includes(value)) cspellJson.ignorePaths.push(value);
   }
 
   await fs.writeJson(cspellPath, cspellJson, { spaces: 2 });
@@ -48,6 +62,11 @@ export async function generateCommon(answers, cwd = process.cwd()) {
   const isApp = projectType === 'app';
 
   await ensurePackageJson(pkgPath);
+
+  if (isApp) {
+    await fs.copyFile(templatePath('app', '.npmrc'), path.join(cwd, '.npmrc'));
+  }
+
   await installDeps(answers);
 
   console.log(pc.green('→') + '  copying config files...');
@@ -74,8 +93,25 @@ export async function generateCommon(answers, cwd = process.cwd()) {
 
   if (lintOption.includes('cspell')) {
     await copyIfMissing(templatePath('common', 'cspell.json'), path.join(cwd, 'cspell.json'), 'cspell.json');
-    if (await fs.pathExists(path.join(cwd, 'cspell.json'))) {
-      await appendAuthorToCspell(cwd, authorName);
+    await appendIgnorePathsToCspell(cwd, ['dist/**']);
+    await appendWordsToCspell(cwd, ['tskickstart']);
+    if (authorName) {
+      await appendWordsToCspell(cwd, authorName.split(/\s+/).filter(Boolean));
+    }
+    if (projectType === 'backend' && answers.backendFramework === 'elysia') {
+      await appendWordsToCspell(cwd, ['elysia', 'Elysia']);
+    }
+    if (isApp) {
+      await appendWordsToCspell(cwd, [
+        'myapp',
+        'Pressable',
+        'react',
+        'React',
+        'react-native',
+        'ReactNative',
+        'expo',
+        'Expo',
+      ]);
     }
   }
 
@@ -200,7 +236,13 @@ describe('helloWorld', () => {
 
   const wroteReadme = await writeReadme(answers, cwd);
   if (wroteReadme) {
-    console.log(pc.green('✔') + '    README.md');
+    console.log(pc.green('→') + '  copying README.md');
+    if (lintOption.includes('cspell')) {
+      const pkg = await fs.readJson(pkgPath);
+      if (pkg.name) {
+        await appendWordsToCspell(cwd, pkg.name.split(/[-_/\s@]+/).filter(Boolean));
+      }
+    }
   } else {
     console.log(pc.dim('–') + '    README.md (already exists, skipped)');
   }

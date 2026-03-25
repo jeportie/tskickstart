@@ -36,9 +36,9 @@ export async function generateNpmLib(answers, cwd) {
   pkg.types = './dist/index.d.ts';
   pkg.exports = {
     '.': {
+      types: './dist/index.d.ts',
       import: './dist/index.js',
       require: './dist/index.cjs',
-      types: './dist/index.d.ts',
     },
   };
   pkg.files = ['dist'];

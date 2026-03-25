@@ -18,6 +18,10 @@ export function orderScripts(scripts) {
     'dev',
     'preview',
     'start',
+    'docker:up',
+    'docker:down',
+    'docker:logs',
+    'docker:build',
     'android',
     'ios',
   ];
@@ -121,6 +125,7 @@ export function buildScripts(pkg, answers) {
 
   if (projectType === 'npm-lib') {
     pkg.scripts.build = 'tsup';
+    pkg.scripts.dev = 'tsup --watch';
   }
 
   if (projectType === 'cli') {
@@ -137,11 +142,23 @@ export function buildScripts(pkg, answers) {
     } else {
       pkg.scripts.dev = 'tsx watch src/index.ts';
       pkg.scripts.build = 'tsc';
-      pkg.scripts.start = 'node dist/index.js';
+      pkg.scripts.start = 'node dist/src/index.js';
+    }
+
+    if (answers.setupDocker) {
+      pkg.scripts['docker:up'] =
+        'sh -c \'if docker compose version >/dev/null 2>&1; then docker compose up --build; elif command -v docker-compose >/dev/null 2>&1; then docker-compose up --build; else echo "Docker Compose is not installed" >&2; exit 1; fi\'';
+      pkg.scripts['docker:down'] =
+        'sh -c \'if docker compose version >/dev/null 2>&1; then docker compose down; elif command -v docker-compose >/dev/null 2>&1; then docker-compose down; else echo "Docker Compose is not installed" >&2; exit 1; fi\'';
+      pkg.scripts['docker:logs'] =
+        'sh -c \'if docker compose version >/dev/null 2>&1; then docker compose logs -f; elif command -v docker-compose >/dev/null 2>&1; then docker-compose logs -f; else echo "Docker Compose is not installed" >&2; exit 1; fi\'';
+      pkg.scripts['docker:build'] =
+        'sh -c \'if docker compose version >/dev/null 2>&1; then docker compose build; elif command -v docker-compose >/dev/null 2>&1; then docker-compose build; else echo "Docker Compose is not installed" >&2; exit 1; fi\'';
     }
   }
 
   if (projectType === 'app') {
+    pkg.main = 'index.ts';
     pkg.scripts.start = 'expo start';
     pkg.scripts.android = 'expo run:android';
     pkg.scripts.ios = 'expo run:ios';

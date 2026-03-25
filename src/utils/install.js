@@ -1,4 +1,5 @@
 import { execa } from 'execa';
+import pc from 'picocolors';
 
 import { startSpinner } from './spinner.js';
 
@@ -6,8 +7,33 @@ function unique(items) {
   return [...new Set(items)];
 }
 
+function shouldSkipInstall() {
+  const value = process.env.NO_INSTALL;
+  if (!value) return false;
+  return value !== '0' && value.toLowerCase() !== 'false';
+}
+
+async function installWithRetry(args, startText, successText, failureText) {
+  const stopSpinner = startSpinner(startText);
+
+  try {
+    await execa('npm', args, { stdio: 'pipe' });
+    stopSpinner(successText);
+    return;
+  } catch (error) {
+    stopSpinner(failureText, 'error');
+    console.error(pc.red(`npm ${args.join(' ')} failed.`));
+    if (error.stderr) console.error(error.stderr);
+    if (error.stdout) console.error(error.stdout);
+    console.log(pc.yellow('Retrying once with live npm output...'));
+  }
+
+  await execa('npm', args, { stdio: 'inherit' });
+  console.log(pc.green('✔') + `  ${successText}`);
+}
+
 export async function installDeps(answers, options = {}) {
-  if (process.env.NO_INSTALL) return;
+  if (shouldSkipInstall()) return;
 
   const { lintOption = [], setupPrecommit = true, vitestPreset, projectType, setupPlaywright } = answers;
   const { extraDeps = [], extraProdDeps = [] } = options;
@@ -21,7 +47,7 @@ export async function installDeps(answers, options = {}) {
     '@stylistic/eslint-plugin',
     'eslint-plugin-import',
     'eslint-import-resolver-typescript',
-    'typescript',
+    projectType === 'app' ? 'typescript@~5.9.2' : 'typescript',
     '@types/node',
   ];
 
@@ -99,10 +125,16 @@ export async function installDeps(answers, options = {}) {
   if (projectType === 'app') {
     devDeps.push('@types/react', 'babel-preset-expo');
     if (answers.setupAppJest) {
-      devDeps.push('jest', '@jest/globals', '@testing-library/react-native', 'react-test-renderer');
+      devDeps.push(
+        'jest@~29.7.0',
+        'jest-expo',
+        '@jest/globals',
+        '@types/jest@^29.5.14',
+        '@testing-library/react-native',
+      );
     }
     if (answers.setupAppDetox) {
-      devDeps.push('detox');
+      devDeps.push('detox', '@types/jest@^29.5.14');
     }
   }
 
@@ -122,7 +154,9 @@ export async function installDeps(answers, options = {}) {
   }
 
   if (projectType === 'backend') {
-    prodDeps.push('zod');
+    if (answers.setupZod !== false) {
+      prodDeps.push('zod');
+    }
     if (answers.backendFramework === 'fastify') {
       prodDeps.push('fastify');
     } else if (answers.backendFramework === 'express') {
@@ -135,17 +169,7 @@ export async function installDeps(answers, options = {}) {
   }
 
   if (projectType === 'app') {
-    prodDeps.push(
-      'expo',
-      'expo-status-bar',
-      'react',
-      'react-native',
-      '@react-navigation/native',
-      '@react-navigation/native-stack',
-      'react-native-screens',
-      'react-native-safe-area-context',
-      '@tanstack/react-query',
-    );
+    prodDeps.push('expo', '@react-navigation/native', '@react-navigation/native-stack', '@tanstack/react-query');
   }
 
   if (projectType === 'frontend') {
@@ -164,14 +188,54 @@ export async function installDeps(answers, options = {}) {
   const finalDevDeps = unique([...devDeps, ...extraDeps]);
 
   if (finalProdDeps.length > 0) {
-    const stopSpinner = startSpinner('Installing dependencies...');
-    await execa('npm', ['install', ...finalProdDeps], { stdio: 'ignore' });
-    stopSpinner('dependencies installed');
+    await installWithRetry(
+      ['install', ...finalProdDeps],
+      'Installing dependencies...',
+      'dependencies installed',
+      'failed to install dependencies',
+    );
   }
 
   if (finalDevDeps.length > 0) {
-    const stopSpinner = startSpinner('Installing dev dependencies...');
-    await execa('npm', ['install', '-D', ...finalDevDeps], { stdio: 'ignore' });
-    stopSpinner('dev dependencies installed');
+    await installWithRetry(
+      ['install', '-D', ...finalDevDeps],
+      'Installing dev dependencies...',
+      'dev dependencies installed',
+      'failed to install dev dependencies',
+    );
+  }
+
+  if (projectType === 'app') {
+    const expoPkgs = [
+      'expo-status-bar',
+      'react',
+      'react-native',
+      'react-native-screens',
+      'react-native-safe-area-context',
+    ];
+    const stopSpinner = startSpinner('Installing Expo-compatible versions...');
+    try {
+      await execa('npx', ['expo', 'install', ...expoPkgs], { stdio: 'pipe' });
+    } catch {
+      // npx expo install may crash in the post-install config plugin step
+      // (e.g. autoAddConfigPlugins.js bug) even though packages were installed
+      // successfully. Swallow the error and continue.
+    }
+    stopSpinner('Expo-compatible versions installed');
+
+    if (answers.setupAppJest) {
+      // react-test-renderer must exactly match the Expo-pinned react version
+      const stopRtr = startSpinner('Installing react-test-renderer...');
+      try {
+        const { stdout: reactVersion } = await execa('node', [
+          '-e',
+          "process.stdout.write(require('react/package.json').version)",
+        ]);
+        await execa('npm', ['install', '-D', `react-test-renderer@${reactVersion}`], { stdio: 'pipe' });
+      } catch {
+        await execa('npm', ['install', '-D', 'react-test-renderer'], { stdio: 'pipe' });
+      }
+      stopRtr('react-test-renderer installed');
+    }
   }
 }

@@ -64,6 +64,8 @@ describe('backend project scaffold', () => {
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'fastify', DOCKER: '0' });
     const content = readFileSync(join(tmpDir, 'src/index.ts'), 'utf-8');
     expect(content).toContain('Fastify');
+    expect(content).not.toContain("async () => ({ message: 'Hello, World!' })");
+    expect(content).not.toContain("async () => ({ status: 'ok' })");
   });
 
   it('creates src/index.ts for express', () => {
@@ -79,6 +81,14 @@ describe('backend project scaffold', () => {
     const content = readFileSync(join(tmpDir, 'src/env.ts'), 'utf-8');
     expect(content).toContain('zod');
     expect(content).toContain('PORT');
+  });
+
+  it('creates src/env.ts without zod when BACKEND_ZOD=0', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', BACKEND_ZOD: '0', DOCKER: '0' });
+    const content = readFileSync(join(tmpDir, 'src/env.ts'), 'utf-8');
+    expect(content).toContain('process.env.PORT');
+    expect(content).not.toContain("from 'zod'");
   });
 
   it('creates .mise.toml', () => {
@@ -105,7 +115,7 @@ describe('backend project scaffold', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '0' });
     const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
-    expect(pkg.scripts).toHaveProperty('start', 'node dist/index.js');
+    expect(pkg.scripts).toHaveProperty('start', 'node dist/src/index.js');
   });
 
   it('creates Dockerfile when DOCKER=1', () => {
@@ -114,10 +124,51 @@ describe('backend project scaffold', () => {
     expect(existsSync(join(tmpDir, 'Dockerfile'))).toBe(true);
   });
 
+  it('Dockerfile skips lifecycle scripts in deps stage', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'Dockerfile'), 'utf-8');
+    expect(content).toContain('npm ci --omit=dev --ignore-scripts');
+    expect(content).toContain('npm install --omit=dev --ignore-scripts');
+  });
+
+  it('Dockerfile builds with TypeScript compiler directly', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'Dockerfile'), 'utf-8');
+    expect(content).toContain('RUN npx tsc');
+    expect(content).toContain('npm ci --ignore-scripts');
+    expect(content).not.toContain('RUN npm run build');
+    expect(content).toContain('CMD ["node", "dist/src/index.js"]');
+  });
+
   it('creates docker-compose.yml when DOCKER=1', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
     expect(existsSync(join(tmpDir, 'docker-compose.yml'))).toBe(true);
+  });
+
+  it('docker-compose.yml runs production container without dev command overrides', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'docker-compose.yml'), 'utf-8');
+    expect(content).toContain('NODE_ENV=production');
+    expect(content).not.toContain('command: npm run dev');
+    expect(content).not.toContain('volumes:');
+  });
+
+  it('creates Makefile when DOCKER=1', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    expect(existsSync(join(tmpDir, 'Makefile'))).toBe(true);
+  });
+
+  it('Makefile uses one-line recipes compatible with GNU Make 3.81', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'Makefile'), 'utf-8');
+    expect(content).toContain('docker-up: ; $(COMPOSE) up --build');
+    expect(content).toContain('docker-down: ; $(COMPOSE) down');
   });
 
   it('creates .dockerignore when DOCKER=1', () => {
@@ -131,6 +182,27 @@ describe('backend project scaffold', () => {
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '0' });
     expect(existsSync(join(tmpDir, 'Dockerfile'))).toBe(false);
     expect(existsSync(join(tmpDir, 'docker-compose.yml'))).toBe(false);
+    expect(existsSync(join(tmpDir, 'Makefile'))).toBe(false);
+  });
+
+  it('adds docker npm scripts when DOCKER=1', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts).toHaveProperty('docker:up');
+    expect(pkg.scripts).toHaveProperty('docker:down');
+    expect(pkg.scripts).toHaveProperty('docker:logs');
+    expect(pkg.scripts['docker:up']).toContain('if docker compose version');
+    expect(pkg.scripts['docker:up']).not.toContain('|| docker-compose');
+  });
+
+  it('does not add docker npm scripts when DOCKER=0', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '0' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts).not.toHaveProperty('docker:up');
+    expect(pkg.scripts).not.toHaveProperty('docker:down');
+    expect(pkg.scripts).not.toHaveProperty('docker:logs');
   });
 
   it('does NOT create src/main.ts (skips common starter)', () => {
@@ -158,6 +230,20 @@ describe('backend project scaffold', () => {
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'elysia', DOCKER: '0' });
     const content = readFileSync(join(tmpDir, 'src/index.ts'), 'utf-8');
     expect(content).toContain('Elysia');
+    expect(content).toContain('if (!isTestEnv())');
+    expect(content).toContain('app.listen(env.PORT)');
+  });
+
+  it('uses Bun-based Dockerfile for elysia', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'elysia', DOCKER: '1' });
+    const content = readFileSync(join(tmpDir, 'Dockerfile'), 'utf-8');
+    expect(content).toContain('FROM oven/bun:1 AS base');
+    expect(content).toContain('COPY package.json ./');
+    expect(content).not.toContain('COPY package*.json ./');
+    expect(content).toContain('RUN bun run build');
+    expect(content).toContain('CMD ["bun", "dist/index.js"]');
+    expect(content).not.toContain('FROM node:22-slim AS base');
   });
 
   it('creates .mise.toml with bun for elysia', () => {
@@ -199,6 +285,9 @@ describe('backend project scaffold', () => {
     expect(existsSync(join(tmpDir, 'tests/unit/server.unit.test.ts'))).toBe(true);
     const content = readFileSync(join(tmpDir, 'tests/unit/server.unit.test.ts'), 'utf-8');
     expect(content).toContain('supertest');
+    expect(content.indexOf("import request from 'supertest';")).toBeLessThan(
+      content.indexOf("import { describe, expect, it } from 'vitest';"),
+    );
   });
 
   it('creates tests/unit/server.unit.test.ts for elysia', () => {
@@ -216,6 +305,14 @@ describe('backend project scaffold', () => {
     expect(content).toContain('backend api');
     expect(content).toContain('Hono');
     expect(content).toContain('Zod');
+  });
+
+  it('README.md omits Zod section when BACKEND_ZOD=0', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', BACKEND_ZOD: '0', DOCKER: '0' });
+    const content = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(content).not.toContain('### Zod');
+    expect(content).not.toContain('**Zod**');
   });
 
   it('README.md mentions Docker when enabled', () => {

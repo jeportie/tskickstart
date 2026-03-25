@@ -10,6 +10,7 @@
     "npmjs",
     "commitlint",
     "detoxrc",
+    "elif",
     "elysia",
     "Elysia",
     "conventionalcommits",
@@ -49,6 +50,7 @@
     "gradlew",
     "Dtest",
     "myapp",
+    "mdcat",
     "Pressable"
   ],
   "ignorePaths": [

@@ -2,16 +2,20 @@ import { intro, outro, text } from '@clack/prompts';
 
 import { hello } from './commands/hello.js';
 
-intro('Welcome!');
+async function main(): Promise<void> {
+  intro('Welcome!');
 
-const name = await text({
-  message: 'What is your name?',
-  placeholder: 'World',
-  defaultValue: 'World',
-});
+  const name = await text({
+    message: 'What is your name?',
+    placeholder: 'World',
+    defaultValue: 'World',
+  });
 
-if (typeof name === 'string') {
-  hello(name);
+  if (typeof name === 'string') {
+    hello(name);
+  }
+
+  outro('Done!');
 }
 
-outro('Done!');
+void main();

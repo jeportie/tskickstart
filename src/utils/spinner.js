@@ -9,8 +9,9 @@ export function startSpinner(text) {
     process.stdout.write(`\r${pc.cyan(frames[i++ % frames.length])}  ${text}`);
   }, 80);
 
-  return (doneText) => {
+  return (doneText, status = 'success') => {
     clearInterval(id);
-    process.stdout.write(`\r\x1B[K${pc.green('✔')}  ${doneText}\n`);
+    const symbol = status === 'success' ? pc.green('✔') : pc.red('✖');
+    process.stdout.write(`\r\x1B[K${symbol}  ${doneText}\n`);
   };
 }

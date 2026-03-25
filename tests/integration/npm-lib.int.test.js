@@ -52,15 +52,22 @@ describe('npm-lib project scaffold', () => {
     expect(pkg.scripts).toHaveProperty('build', 'tsup');
   });
 
-  it('sets package.json exports with CJS/ESM paths', () => {
+  it('adds dev script with value "tsup --watch"', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { SEMANTIC_RELEASE: '1' });
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts).toHaveProperty('dev', 'tsup --watch');
+  });
+
+  it('sets package.json exports with types first, then CJS/ESM paths', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { SEMANTIC_RELEASE: '1' });
     const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
     expect(pkg.exports).toEqual({
       '.': {
+        types: './dist/index.d.ts',
         import: './dist/index.js',
         require: './dist/index.cjs',
-        types: './dist/index.d.ts',
       },
     });
   });

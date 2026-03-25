@@ -6,6 +6,7 @@
   "ignorePaths": [
     "cspell.json",
     "node_modules/**",
+    "dist/**",
     "coverage",
     "package.json",
     "package-lock.json",

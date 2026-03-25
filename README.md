@@ -12,15 +12,54 @@ npm create @jeportie/tskickstart
 
 The CLI first asks what you're building, then tailors everything to that choice:
 
-| Type                | What you get                                                     |
-| ------------------- | ---------------------------------------------------------------- |
-| **npm library**     | Node.js library scaffold with `src/main.ts` and test boilerplate |
-| **CLI tool**        | Same as npm library (CLI-specific templates coming soon)         |
-| **backend service** | Same as npm library (backend-specific templates coming soon)     |
-| **frontend app**    | React + Vite + Tailwind CSS v4 starter with component tests      |
-| **fullstack app**   | Frontend + backend (fullstack-specific templates coming soon)    |
+| Type                | What you get                                                    |
+| ------------------- | --------------------------------------------------------------- |
+| **npm library**     | `tsup`-based package scaffold with optional semantic-release    |
+| **CLI tool**        | Commander/Inquirer/Clack templates + `bin` wiring + unit tests  |
+| **backend service** | Hono/Fastify/Express/Elysia templates + optional Docker + tests |
+| **frontend app**    | React + Vite + Tailwind CSS v4 starter with component tests     |
+| **mobile app**      | React Native + Expo starter with optional Jest and Detox        |
+| **fullstack app**   | Shared baseline now, dedicated fullstack templates planned      |
 
 All project types share a common foundation: ESLint 9 flat config, Prettier, TypeScript strict mode, and optional tooling (Vitest, Husky, CSpell, Secretlint, Commitlint).
+
+---
+
+## New in dev branch (vs main)
+
+The `dev` branch now includes a large feature wave that is not in `main` yet:
+
+### New scaffolding targets
+
+- **`npm-lib` mode** now ships with proper packaging support (`tsup`), export-ready defaults, and optional semantic-release setup.
+- **`cli` mode** now supports framework-specific templates (`commander`, `inquirer`, `@clack/prompts`), dedicated command/test templates, and lint-safe async entrypoints.
+- **`backend` mode** now supports framework choice (`hono`, `fastify`, `express`, `elysia`) with framework-specific server/tests.
+- **`app` mode** now scaffolds React Native + Expo projects with navigation, a richer starter UI, and optional Jest/Detox test setup.
+
+### README generation and onboarding
+
+- Generated project READMEs are now far more detailed: implementation workflow, testing workflow, scripts reference, and per-tool playbooks with practical examples.
+- The CLI now asks whether to preview the generated `README.md` in terminal after scaffolding, with Markdown renderer fallback support.
+
+### Backend and Docker reliability improvements
+
+- Backend prompt flow now asks framework-specific options first.
+- Zod is now optional in backend mode (with matching templates/dependencies/docs).
+- Docker support now includes generated `Makefile` targets and compose command compatibility scripts.
+- Docker templates were hardened for lifecycle script issues (`husky` in containers) and lockfile/no-lockfile scenarios.
+- Elysia Docker now uses a Bun-based runtime template to avoid Node WebStandard `listen()` runtime failures.
+
+### Mobile app stability fixes
+
+- App scaffolding now force-refreshes key app template files so stale files from previous non-app scaffolds do not leak into mobile projects.
+- App template set now includes explicit entrypoint/config files (`index.ts`, `.npmrc`, `jest.config.cjs`, Detox Jest config) to avoid runtime/test drift.
+- CSpell words now include mobile stack terms (`react`, `react-native`, `expo`) and ignores built output (`dist/**`) by default.
+
+### Quality gate and test coverage
+
+- Install flow now retries with visible npm error output for easier diagnosis when dependency installation fails.
+- Integration coverage expanded significantly across new project modes and regressions.
+- Current suite on `dev` is now **188 integration tests**.
 
 ---
 
@@ -468,7 +507,7 @@ Node.js 20+ required. Run `npm install` after cloning.
 ### Run tests
 
 ```sh
-npm test                  # all 68 integration tests
+npm test                  # all 188 integration tests
 npm run test:integration  # integration tests only
 npm run test:coverage     # with coverage report
 ```

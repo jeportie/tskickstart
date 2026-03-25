@@ -21,6 +21,23 @@ export async function askBackendQuestions() {
     backendFramework = result.backendFramework;
   }
 
+  let setupZod = true;
+  if (process.env.BACKEND_ZOD === '0') {
+    setupZod = false;
+  } else if (process.env.BACKEND_ZOD === '1') {
+    setupZod = true;
+  } else if (process.stdin.isTTY) {
+    const result = await prompt([
+      {
+        type: 'confirm',
+        name: 'setupZod',
+        message: 'Set up Zod for environment variable validation?',
+        default: true,
+      },
+    ]);
+    setupZod = result.setupZod;
+  }
+
   let setupDocker = true;
   if (process.env.DOCKER === '0') {
     setupDocker = false;
@@ -38,5 +55,5 @@ export async function askBackendQuestions() {
     setupDocker = result.setupDocker;
   }
 
-  return { backendFramework, setupDocker };
+  return { backendFramework, setupZod, setupDocker };
 }

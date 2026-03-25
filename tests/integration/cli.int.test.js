@@ -58,6 +58,8 @@ describe('cli project scaffold', () => {
     runCli(tmpDir, { CLI_FRAMEWORK: 'inquirer', CLI_NAME: 'my-tool' });
     const content = readFileSync(join(tmpDir, 'src/index.ts'), 'utf-8');
     expect(content).toContain('inquirer');
+    expect(content).toContain('void main();');
+    expect(content).not.toMatch(/^\s*main\(\);\s*$/m);
   });
 
   it('creates src/index.ts with clack setup', () => {
@@ -65,6 +67,8 @@ describe('cli project scaffold', () => {
     runCli(tmpDir, { CLI_FRAMEWORK: 'clack', CLI_NAME: 'my-tool' });
     const content = readFileSync(join(tmpDir, 'src/index.ts'), 'utf-8');
     expect(content).toContain('@clack/prompts');
+    expect(content).toContain('void main();');
+    expect(content).not.toMatch(/^\s*main\(\);\s*$/m);
   });
 
   it('creates src/commands/hello.ts', () => {
