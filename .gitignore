@@ -11,3 +11,8 @@ dist
 
 coverage
 .eslintcache
+
+# Dev-only files (not shipped)
+CLAUDE.md
+TODO.md
+NEXT.md
