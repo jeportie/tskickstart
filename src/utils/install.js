@@ -127,6 +127,52 @@ export async function installDeps(answers, options = {}) {
     if (answers.backendFramework === 'express') {
       devDeps.push('@types/express', 'supertest', '@types/supertest');
     }
+
+    if (answers.setupDatabase) {
+      if (answers.databaseOrm === 'drizzle') {
+        devDeps.push('drizzle-kit');
+        extraProdDeps.push('drizzle-orm');
+
+        if (answers.databaseEngine === 'postgresql') {
+          extraProdDeps.push('pg');
+          devDeps.push('@types/pg');
+        }
+
+        if (answers.databaseEngine === 'mysql' || answers.databaseEngine === 'mariadb') {
+          extraProdDeps.push('mysql2');
+        }
+
+        if (answers.databaseEngine === 'sqlite') {
+          extraProdDeps.push('better-sqlite3');
+        }
+      }
+
+      if (answers.databaseOrm === 'prisma') {
+        devDeps.push('prisma');
+        extraProdDeps.push('@prisma/client');
+      }
+
+      if (answers.databaseOrm === 'mongoose') {
+        extraProdDeps.push('mongoose');
+      }
+
+      if (answers.databaseOrm === 'none') {
+        if (answers.databaseEngine === 'postgresql') {
+          extraProdDeps.push('pg');
+          devDeps.push('@types/pg');
+        }
+        if (answers.databaseEngine === 'mysql' || answers.databaseEngine === 'mariadb') {
+          extraProdDeps.push('mysql2');
+        }
+        if (answers.databaseEngine === 'sqlite') {
+          extraProdDeps.push('better-sqlite3');
+        }
+      }
+
+      if (answers.setupRedis) {
+        extraProdDeps.push('ioredis');
+      }
+    }
   }
 
   if (projectType === 'app') {

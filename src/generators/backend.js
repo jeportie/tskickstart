@@ -3,6 +3,7 @@ import pc from 'picocolors';
 import path from 'node:path';
 
 import { copyIfMissing, templatePath } from '../utils/file-system.js';
+import { generateDatabase } from './database.js';
 
 function backendTemplatePath(file) {
   return templatePath('backend', file);
@@ -74,4 +75,6 @@ export async function generateBackend(answers, cwd) {
   } else {
     console.log(pc.dim('–') + '    tests/unit/server.unit.test.ts (already exists, skipped)');
   }
+
+  await generateDatabase(answers, cwd);
 }

@@ -57,6 +57,8 @@
     "changesets",
     "ghcr",
     "drizzle",
+    "timestamptz",
+    "autoincrement",
     "biome",
     "biomejs"
   ],

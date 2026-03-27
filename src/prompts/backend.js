@@ -1,4 +1,5 @@
 import { prompt } from '../utils/prompt.js';
+import { askDatabaseQuestions } from './database.js';
 
 export async function askBackendQuestions() {
   let backendFramework = 'hono';
@@ -55,5 +56,7 @@ export async function askBackendQuestions() {
     setupDocker = result.setupDocker;
   }
 
-  return { backendFramework, setupZod, setupDocker };
+  const databaseAnswers = await askDatabaseQuestions();
+
+  return { backendFramework, setupZod, setupDocker, ...databaseAnswers };
 }
