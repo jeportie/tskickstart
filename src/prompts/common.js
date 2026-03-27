@@ -4,8 +4,29 @@ import { prompt } from '../utils/prompt.js';
 import { askPlaywrightQuestion } from './playwright.js';
 
 export async function askCommonQuestions(projectType) {
+  let linter = process.env.LINTER === 'biome' ? 'biome' : 'eslint';
+  if (!process.env.LINTER && process.stdin.isTTY) {
+    const result = await prompt([
+      {
+        type: 'list',
+        name: 'linter',
+        message: 'Linter & formatter?',
+        choices: [
+          { name: 'ESLint + Prettier', value: 'eslint' },
+          { name: 'Biome', value: 'biome' },
+        ],
+        default: 'eslint',
+      },
+    ]);
+    linter = result.linter;
+  }
+
   let lintOption = [];
-  if (process.stdin.isTTY) {
+  if (process.env.LINT_OPTIONS) {
+    lintOption = process.env.LINT_OPTIONS.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  } else if (process.stdin.isTTY) {
     const result = await prompt([
       {
         type: 'checkbox',
@@ -94,6 +115,7 @@ export async function askCommonQuestions(projectType) {
   }
 
   return {
+    linter,
     lintOption,
     vitestPreset,
     setupPlaywright,

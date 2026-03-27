@@ -46,28 +46,35 @@ async function installWithRetry(args, startText, successText, failureText) {
 export async function installDeps(answers, options = {}) {
   if (shouldSkipInstall()) return;
 
-  const { lintOption = [], setupPrecommit = true, vitestPreset, projectType, setupPlaywright } = answers;
+  const { lintOption = [], setupPrecommit = true, vitestPreset, projectType, setupPlaywright, linter } = answers;
   const { extraDeps = [], extraProdDeps = [] } = options;
 
-  const devDeps = [
-    'eslint@^9',
-    '@eslint/js@^9',
-    'prettier',
-    'eslint-config-prettier@^9.1.0',
-    'typescript-eslint',
-    '@stylistic/eslint-plugin',
-    'eslint-plugin-import',
-    'eslint-import-resolver-typescript',
-    projectType === 'app' ? 'typescript@~5.9.2' : 'typescript@~5.9.3',
-    '@types/node',
-  ];
+  const devDeps = [projectType === 'app' ? 'typescript@~5.9.2' : 'typescript@~5.9.3', '@types/node'];
+
+  if (linter === 'biome') {
+    devDeps.push('@biomejs/biome');
+  } else {
+    devDeps.push(
+      'eslint@^9',
+      '@eslint/js@^9',
+      'prettier',
+      'eslint-config-prettier@^9.1.0',
+      'typescript-eslint',
+      '@stylistic/eslint-plugin',
+      'eslint-plugin-import',
+      'eslint-import-resolver-typescript',
+    );
+  }
 
   if (lintOption.includes('secretlint')) {
     devDeps.push('secretlint', '@secretlint/secretlint-rule-preset-recommend');
   }
 
   if (lintOption.includes('cspell')) {
-    devDeps.push('cspell', '@cspell/eslint-plugin');
+    if (linter !== 'biome') {
+      devDeps.push('@cspell/eslint-plugin');
+    }
+    devDeps.push('cspell');
   }
 
   if (lintOption.includes('commitlint')) {

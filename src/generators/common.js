@@ -57,7 +57,7 @@ async function appendIgnorePathsToCspell(cwd, ignorePaths) {
 
 export async function generateCommon(answers, cwd = process.cwd()) {
   const pkgPath = path.join(cwd, 'package.json');
-  const { lintOption = [], vitestPreset, setupPrecommit = true, authorName, projectType } = answers;
+  const { lintOption = [], vitestPreset, setupPrecommit = true, authorName, projectType, linter = 'eslint' } = answers;
   const isFrontend = projectType === 'frontend';
   const isApp = projectType === 'app';
 
@@ -82,10 +82,15 @@ export async function generateCommon(answers, cwd = process.cwd()) {
     }
   }
 
-  await fs.copyFile(templatePath('common', 'prettier.config.js'), path.join(cwd, 'prettier.config.js'));
-  console.log(pc.green('✔') + '    prettier.config.js');
+  if (linter === 'biome') {
+    await fs.copyFile(templatePath('common', 'biome.json'), path.join(cwd, 'biome.json'));
+    console.log(pc.green('✔') + '    biome.json');
+  } else {
+    await fs.copyFile(templatePath('common', 'prettier.config.js'), path.join(cwd, 'prettier.config.js'));
+    console.log(pc.green('✔') + '    prettier.config.js');
+  }
 
-  if (!isFrontend && !isApp) {
+  if (!isFrontend && !isApp && linter !== 'biome') {
     const eslintTemplate = lintOption.includes('cspell') ? 'eslintCspell.config.js' : 'eslint.config.js';
     await fs.copyFile(templatePath('common', eslintTemplate), path.join(cwd, 'eslint.config.js'));
     console.log(pc.green('✔') + '    eslint.config.js');
@@ -146,7 +151,13 @@ export async function generateCommon(answers, cwd = process.cwd()) {
 
   await copyIfMissing(templatePath('common', '.editorconfig'), path.join(cwd, '.editorconfig'), '.editorconfig');
   await copyIfMissing(templatePath('common', '_gitignore'), path.join(cwd, '.gitignore'), '.gitignore');
-  await copyIfMissing(templatePath('common', '.prettierignore'), path.join(cwd, '.prettierignore'), '.prettierignore');
+  if (linter !== 'biome') {
+    await copyIfMissing(
+      templatePath('common', '.prettierignore'),
+      path.join(cwd, '.prettierignore'),
+      '.prettierignore',
+    );
+  }
 
   if (lintOption.includes('secretlint')) {
     await copyIfMissing(

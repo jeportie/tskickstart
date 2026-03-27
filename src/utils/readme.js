@@ -56,7 +56,7 @@ function getTestStack(answers) {
 
 function getQualityStack(answers) {
   const { lintOption = [] } = answers;
-  const tools = ['TypeScript', 'ESLint', 'Prettier'];
+  const tools = answers.linter === 'biome' ? ['TypeScript', 'Biome'] : ['TypeScript', 'ESLint', 'Prettier'];
   if (lintOption.includes('cspell')) tools.push('CSpell');
   if (lintOption.includes('secretlint')) tools.push('Secretlint');
   if (lintOption.includes('commitlint')) tools.push('Commitlint');
@@ -438,6 +438,10 @@ function getTypescriptPlaybook(answers) {
 
 function getEslintPlaybook(answers) {
   const { projectType } = answers;
+
+  if (answers.linter === 'biome') {
+    return `### Biome\n\nBiome replaces ESLint + Prettier with a single fast toolchain for linting and formatting.\n\n${codeBlock('bash', 'npm run lint\nnpm run format')}`;
+  }
 
   const contextMap = {
     backend:
@@ -1079,7 +1083,11 @@ function getToolsSection(answers) {
   }
 
   tools.push('- **TypeScript** \u2014 strict type checking');
-  tools.push('- **ESLint** v9 + **Prettier** \u2014 code quality and formatting');
+  if (answers.linter === 'biome') {
+    tools.push('- **Biome** \u2014 linting and formatting');
+  } else {
+    tools.push('- **ESLint** v9 + **Prettier** \u2014 code quality and formatting');
+  }
 
   if (lintOption.includes('cspell')) tools.push('- **CSpell** \u2014 spell checking');
   if (lintOption.includes('secretlint')) tools.push('- **Secretlint** \u2014 secret detection');

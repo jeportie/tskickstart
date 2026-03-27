@@ -79,6 +79,7 @@ export function buildScripts(pkg, answers) {
     setupPlaywright = false,
     setupAppJest = true,
     setupAppDetox = true,
+    linter = 'eslint',
   } = answers;
 
   const checkParts = ['npm run format', 'npm run lint', 'npm run typecheck'];
@@ -90,8 +91,8 @@ export function buildScripts(pkg, answers) {
   pkg.scripts = {
     ...pkg.scripts,
     check: checkParts.join(' && '),
-    format: 'prettier . --write',
-    lint: 'eslint .',
+    format: linter === 'biome' ? 'biome format --write .' : 'prettier . --write',
+    lint: linter === 'biome' ? 'biome check .' : 'eslint .',
     typecheck: projectType === 'frontend' ? 'tsc -b' : 'tsc --noEmit',
   };
 
@@ -178,7 +179,7 @@ export function buildScripts(pkg, answers) {
   }
 
   if (setupPrecommit) {
-    const lintStagedCmds = ['npm run format', 'npm run lint'];
+    const lintStagedCmds = linter === 'biome' ? ['biome check --write .'] : ['npm run format', 'npm run lint'];
     if (lintOption.includes('cspell')) lintStagedCmds.push('npm run spellcheck');
     if (lintOption.includes('secretlint')) lintStagedCmds.push('npm run secretlint');
     pkg['lint-staged'] = { '**/*': lintStagedCmds };
