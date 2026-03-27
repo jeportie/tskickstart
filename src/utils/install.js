@@ -13,6 +13,17 @@ function shouldSkipInstall() {
   return value !== '0' && value.toLowerCase() !== 'false';
 }
 
+export function getSemanticReleaseDevDeps() {
+  return [
+    'semantic-release',
+    '@semantic-release/commit-analyzer',
+    '@semantic-release/release-notes-generator',
+    '@semantic-release/npm',
+    '@semantic-release/github',
+    'conventional-changelog-conventionalcommits',
+  ];
+}
+
 async function installWithRetry(args, startText, successText, failureText) {
   const stopSpinner = startSpinner(startText);
 
@@ -47,7 +58,7 @@ export async function installDeps(answers, options = {}) {
     '@stylistic/eslint-plugin',
     'eslint-plugin-import',
     'eslint-import-resolver-typescript',
-    projectType === 'app' ? 'typescript@~5.9.2' : 'typescript',
+    projectType === 'app' ? 'typescript@~5.9.2' : 'typescript@~5.9.3',
     '@types/node',
   ];
 
@@ -98,28 +109,14 @@ export async function installDeps(answers, options = {}) {
   if (projectType === 'npm-lib') {
     devDeps.push('tsup');
     if (answers.setupSemanticRelease) {
-      devDeps.push(
-        'semantic-release',
-        '@semantic-release/commit-analyzer',
-        '@semantic-release/release-notes-generator',
-        '@semantic-release/npm',
-        '@semantic-release/github',
-        'conventional-changelog-conventionalcommits',
-      );
+      devDeps.push(...getSemanticReleaseDevDeps());
     }
   }
 
   if (projectType === 'cli') {
     devDeps.push('tsup', 'tsx');
     if (answers.setupSemanticRelease) {
-      devDeps.push(
-        'semantic-release',
-        '@semantic-release/commit-analyzer',
-        '@semantic-release/release-notes-generator',
-        '@semantic-release/npm',
-        '@semantic-release/github',
-        'conventional-changelog-conventionalcommits',
-      );
+      devDeps.push(...getSemanticReleaseDevDeps());
     }
   }
 
