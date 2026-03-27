@@ -1,6 +1,7 @@
 import { execa } from 'execa';
 
 import { prompt } from '../utils/prompt.js';
+import { askCicdQuestions } from './cicd.js';
 import { askPlaywrightQuestion } from './playwright.js';
 
 export async function askCommonQuestions(projectType) {
@@ -82,6 +83,8 @@ export async function askCommonQuestions(projectType) {
     setupPrecommit = result.setupPrecommit;
   }
 
+  const cicdAnswers = await askCicdQuestions(projectType);
+
   let authorName = '';
   if (process.env.AUTHOR_NAME !== undefined) {
     authorName = process.env.AUTHOR_NAME;
@@ -119,6 +122,7 @@ export async function askCommonQuestions(projectType) {
     lintOption,
     vitestPreset,
     setupPlaywright,
+    ...cicdAnswers,
     setupPrecommit,
     authorName,
   };

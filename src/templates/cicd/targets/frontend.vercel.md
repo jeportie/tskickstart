@@ -1,0 +1,3 @@
+# Vercel target
+
+Use `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secrets.

@@ -4,6 +4,7 @@ import pc from 'picocolors';
 import path from 'node:path';
 
 import { copyIfMissing, templatePath } from '../utils/file-system.js';
+import { generateCicd } from './cicd.js';
 import { installDeps } from '../utils/install.js';
 import { writeReadme } from '../utils/readme.js';
 import { buildScripts, orderPackageKeys } from '../utils/scripts.js';
@@ -273,4 +274,6 @@ describe('helloWorld', () => {
   } else {
     console.log(pc.dim('–') + '    README.md (already exists, skipped)');
   }
+
+  await generateCicd(answers, cwd);
 }
