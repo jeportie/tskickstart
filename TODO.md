@@ -240,8 +240,8 @@ Offer Biome as an alternative to ESLint + Prettier for all project types.
 6. [x] **Add `backend` type** — Hono/Fastify/Express/Elysia + Docker + Zod
 7. [x] **Add `cli` type** — Commander/Inquirer/Clack + tsup + optional semantic-release
 8. [x] **UX polish** — Spinner animation, back navigation, ASCII banner, README deep-dive
-9. [ ] **Biome alternative** — ESLint+Prettier vs Biome choice (independent)
-10. [ ] **Database option** — Drizzle/Prisma/MongoDB/Redis for backend (independent)
+9. [ ] **Database option** — Drizzle/Prisma/MongoDB/Redis for backend (independent)
+10. [ ] **Biome alternative** — ESLint+Prettier vs Biome choice (independent)
 11. [ ] **CI/CD pipeline option** — GitHub Actions, deploy workflows (independent)
 12. [ ] **Add `fullstack` type** — pnpm monorepo with workspaces + changesets (depends on #10)
 13. [ ] **Add `fullstack + app` type** — Extends fullstack with mobile workspace (depends on #12)
