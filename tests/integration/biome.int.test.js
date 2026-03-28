@@ -50,6 +50,14 @@ describe('biome option', () => {
     expect(pkg['lint-staged']['**/*']).toContain('biome check --write .');
   });
 
+  it('enforces node: protocol in biome config', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { LINTER: 'biome' });
+
+    const content = readFileSync(join(tmpDir, 'biome.json'), 'utf-8');
+    expect(content).toContain('useNodejsImportProtocol');
+  });
+
   it('keeps cspell standalone when biome is selected', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { LINTER: 'biome', LINT_OPTIONS: 'cspell' });

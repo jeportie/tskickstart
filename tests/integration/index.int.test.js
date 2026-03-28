@@ -38,6 +38,14 @@ describe('tskickstart CLI', () => {
     expect(existsSync(join(tmpDir, 'eslint.config.js'))).toBe(true);
   });
 
+  it('eslint config enforces node: protocol for built-in imports', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'eslint.config.js'), 'utf-8');
+    expect(content).toContain('import/enforce-node-protocol-usage');
+    expect(content).toContain("'always'");
+  });
+
   it('copies prettier.config.js to the target directory', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir);
