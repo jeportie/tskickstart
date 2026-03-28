@@ -316,6 +316,21 @@ async function patchBackendEnvForDatabase(cwd) {
   }
 }
 
+async function upsertRedisEnvExample(cwd) {
+  const envPath = path.join(cwd, '.env.example');
+  let content = '';
+  if (await fs.pathExists(envPath)) {
+    content = await fs.readFile(envPath, 'utf-8');
+  }
+
+  const lines = content
+    .split('\n')
+    .filter(Boolean)
+    .filter((line) => !line.startsWith('REDIS_URL='));
+  lines.push('REDIS_URL=redis://localhost:6379');
+  await fs.writeFile(envPath, `${lines.join('\n')}\n`);
+}
+
 async function appendReadmeSection(cwd, engine, orm) {
   const readmePath = path.join(cwd, 'README.md');
   if (!(await fs.pathExists(readmePath))) return;
@@ -377,6 +392,39 @@ ${smokeExample}
   await fs.writeFile(readmePath, `${content}${section}`);
 }
 
+async function appendRedisReadmeSection(cwd) {
+  const readmePath = path.join(cwd, 'README.md');
+  if (!(await fs.pathExists(readmePath))) return;
+
+  const content = await fs.readFile(readmePath, 'utf-8');
+  if (content.includes('## Redis')) return;
+
+  const section = `
+
+## Redis
+
+- Client: ioredis
+- Connection: \`REDIS_URL\`
+
+### Quick start
+
+\`\`\`bash
+cp .env.example .env
+# set REDIS_URL in .env
+\`\`\`
+
+### Starter usage
+
+\`\`\`ts
+import { redis } from './src/redis';
+
+await redis.ping();
+\`\`\`
+`;
+
+  await fs.writeFile(readmePath, `${content}${section}`);
+}
+
 async function patchDockerCompose(cwd, engine) {
   const composePath = path.join(cwd, 'docker-compose.yml');
   if (!(await fs.pathExists(composePath))) return;
@@ -387,6 +435,23 @@ async function patchDockerCompose(cwd, engine) {
 
   const service = renderDockerDbService(engine);
   await fs.writeFile(composePath, `${content}${service}`);
+}
+
+async function patchDockerComposeRedis(cwd) {
+  const composePath = path.join(cwd, 'docker-compose.yml');
+  if (!(await fs.pathExists(composePath))) return;
+
+  const content = await fs.readFile(composePath, 'utf-8');
+  if (content.includes('\n  redis:\n')) return;
+
+  const redisService = `
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+`;
+
+  await fs.writeFile(composePath, `${content}${redisService}`);
 }
 
 export async function generateDatabase(answers, cwd) {
@@ -456,6 +521,28 @@ export const Example = model('Example', exampleSchema);
   await upsertEnvExample(cwd, meta.url);
   await patchBackendEnvForDatabase(cwd);
   await appendReadmeSection(cwd, engine, orm);
+
+  if (answers.setupRedis) {
+    const redisDir = path.join(cwd, 'src/redis');
+    await fs.ensureDir(redisDir);
+    await fs.writeFile(
+      path.join(redisDir, 'index.ts'),
+      `import Redis from 'ioredis';
+
+export const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+
+export async function checkRedisConnection() {
+  return await redis.ping();
+}
+`,
+    );
+    await upsertRedisEnvExample(cwd);
+    await appendRedisReadmeSection(cwd);
+
+    if (answers.setupDocker) {
+      await patchDockerComposeRedis(cwd);
+    }
+  }
 
   if (answers.setupDocker) {
     await patchDockerCompose(cwd, engine);

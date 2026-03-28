@@ -168,4 +168,28 @@ describe('database scaffold', () => {
     expect(migrate).toContain('_migrations');
     expect(migrate).toContain('readFile');
   });
+
+  it('generates redis starter files, env, docker service and docs when redis is enabled', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, {
+      SETUP_DATABASE: '1',
+      DB_ENGINE: 'postgresql',
+      DB_ORM: 'none',
+      SETUP_REDIS: '1',
+      DOCKER: '1',
+    });
+
+    expect(existsSync(join(tmpDir, 'src/redis/index.ts'))).toBe(true);
+
+    const envExample = readFileSync(join(tmpDir, '.env.example'), 'utf-8');
+    expect(envExample).toContain('REDIS_URL=');
+
+    const compose = readFileSync(join(tmpDir, 'docker-compose.yml'), 'utf-8');
+    expect(compose).toContain('\n  redis:\n');
+    expect(compose).toContain('redis:7-alpine');
+
+    const readme = readFileSync(join(tmpDir, 'README.md'), 'utf-8');
+    expect(readme).toContain('## Redis');
+    expect(readme).toContain('REDIS_URL');
+  });
 });
