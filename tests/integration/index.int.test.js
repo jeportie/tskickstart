@@ -38,6 +38,14 @@ describe('tskickstart CLI', () => {
     expect(existsSync(join(tmpDir, 'eslint.config.js'))).toBe(true);
   });
 
+  it('eslint config enforces node: protocol for built-in imports', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir);
+    const content = readFileSync(join(tmpDir, 'eslint.config.js'), 'utf-8');
+    expect(content).toContain('import/enforce-node-protocol-usage');
+    expect(content).toContain("'always'");
+  });
+
   it('copies prettier.config.js to the target directory', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir);
@@ -151,6 +159,14 @@ describe('tskickstart CLI', () => {
     expect(content).toContain("'@'");
   });
 
+  it('native vitest.config.ts uses node: import protocol for path', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'native' });
+    const content = readFileSync(join(tmpDir, 'vitest.config.ts'), 'utf-8');
+    expect(content).toContain("from 'node:path'");
+    expect(content).not.toContain("from 'path'");
+  });
+
   it('native vitest.config.ts includes both test and tests directories', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { VITEST_PRESET: 'native' });
@@ -191,6 +207,14 @@ describe('tskickstart CLI', () => {
     expect(content).toContain('coverage');
     expect(content).toContain('json-summary');
     expect(content).toContain('reportOnFailure');
+  });
+
+  it('coverage vitest.config.ts uses node: import protocol for path', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { VITEST_PRESET: 'coverage' });
+    const content = readFileSync(join(tmpDir, 'vitest.config.ts'), 'utf-8');
+    expect(content).toContain("from 'node:path'");
+    expect(content).not.toContain("from 'path'");
   });
 
   it('injects test, test:unit, test:integration, test:coverage scripts for coverage preset', () => {
