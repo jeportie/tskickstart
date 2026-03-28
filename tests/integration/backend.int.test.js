@@ -169,6 +169,8 @@ describe('backend project scaffold', () => {
     const content = readFileSync(join(tmpDir, 'Makefile'), 'utf-8');
     expect(content).toContain('docker-up: ; $(COMPOSE) up --build');
     expect(content).toContain('docker-down: ; $(COMPOSE) down');
+    expect(content).toContain('docker-db-up: ; $(COMPOSE) up -d db');
+    expect(content).toContain('docker-db-logs: ; $(COMPOSE) logs -f db');
   });
 
   it('creates .dockerignore when DOCKER=1', () => {

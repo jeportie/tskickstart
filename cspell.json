@@ -63,7 +63,9 @@
     "biome",
     "biomejs",
     "currfix",
-    "unstub"
+    "unstub",
+    "psql",
+    "mongosh"
   ],
   "ignorePaths": [
     ".vscode/",
