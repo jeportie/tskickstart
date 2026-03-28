@@ -179,6 +179,33 @@ export function buildScripts(pkg, answers) {
           'sh -c \'if [ -n "$(npm run | grep -E " db:migrate")" ]; then npm run db:migrate; else echo "No db:migrate script defined for current ORM/engine"; fi\'';
       }
     }
+
+    if (answers.setupDatabase) {
+      const engine = answers.databaseEngine ?? 'postgresql';
+      const orm = answers.databaseOrm ?? (engine === 'mongodb' ? 'mongoose' : 'none');
+
+      if (orm === 'drizzle') {
+        pkg.scripts['db:generate'] = 'drizzle-kit generate';
+        pkg.scripts['db:migrate'] = 'drizzle-kit migrate';
+        pkg.scripts['db:studio'] = 'drizzle-kit studio';
+      } else if (orm === 'prisma') {
+        pkg.scripts['db:generate'] = 'prisma generate';
+        pkg.scripts['db:migrate'] = 'prisma migrate dev';
+        pkg.scripts['db:studio'] = 'prisma studio';
+      } else if (orm === 'none') {
+        pkg.scripts['db:migrate'] = 'node --import tsx src/db/migrate.ts';
+      }
+
+      if (engine === 'postgresql') {
+        pkg.scripts['db:shell'] = 'psql "$DATABASE_URL"';
+      } else if (engine === 'mysql' || engine === 'mariadb') {
+        pkg.scripts['db:shell'] = 'mysql "$DATABASE_URL"';
+      } else if (engine === 'sqlite') {
+        pkg.scripts['db:shell'] = 'sqlite3 dev.db';
+      } else if (engine === 'mongodb') {
+        pkg.scripts['db:shell'] = 'mongosh "$DATABASE_URL"';
+      }
+    }
   }
 
   if (projectType === 'app') {
