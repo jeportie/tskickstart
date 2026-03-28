@@ -92,6 +92,23 @@ describe('database scaffold', () => {
     expect(compose).toContain('postgres');
   });
 
+  it('adds db-focused docker scripts when database + docker are enabled', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, {
+      SETUP_DATABASE: '1',
+      DB_ENGINE: 'postgresql',
+      DB_ORM: 'drizzle',
+      DOCKER: '1',
+    });
+
+    const pkg = JSON.parse(readFileSync(join(tmpDir, 'package.json'), 'utf-8'));
+    expect(pkg.scripts).toHaveProperty('docker:db:up');
+    expect(pkg.scripts).toHaveProperty('docker:db:down');
+    expect(pkg.scripts).toHaveProperty('docker:db:logs');
+    expect(pkg.scripts).toHaveProperty('docker:db:shell');
+    expect(pkg.scripts).toHaveProperty('docker:db:migrate');
+  });
+
   it('writes a connection string template in .env.example', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, {
