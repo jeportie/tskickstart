@@ -24,6 +24,31 @@ function runCli(cwd, extraEnv = {}) {
   });
 }
 
+function stripAnsi(value) {
+  let sanitized = '';
+
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index];
+
+    if (current === '\u001b' && value[index + 1] === '[') {
+      index += 2;
+
+      while (index < value.length) {
+        const code = value.charCodeAt(index);
+        const isFinalByte = code >= 0x40 && code <= 0x7e;
+        if (isFinalByte) break;
+        index += 1;
+      }
+
+      continue;
+    }
+
+    sanitized += current;
+  }
+
+  return sanitized;
+}
+
 describe('backend project scaffold', () => {
   let tmpDir;
 
@@ -335,17 +360,19 @@ describe('backend project scaffold', () => {
 
   it('prints script and generated file summaries for backend database stacks', () => {
     tmpDir = createTmpProject();
-    const output = runCli(tmpDir, {
-      BACKEND_FRAMEWORK: 'fastify',
-      DOCKER: '1',
-      SETUP_DATABASE: '1',
-      DB_ENGINE: 'mysql',
-      DB_ORM: 'prisma',
-      SETUP_REDIS: '1',
-      INTEGRATION_PRESET: 'better-auth',
-      VITEST_PRESET: 'coverage',
-      LINT_OPTIONS: 'cspell,secretlint,commitlint',
-    });
+    const output = stripAnsi(
+      runCli(tmpDir, {
+        BACKEND_FRAMEWORK: 'fastify',
+        DOCKER: '1',
+        SETUP_DATABASE: '1',
+        DB_ENGINE: 'mysql',
+        DB_ORM: 'prisma',
+        SETUP_REDIS: '1',
+        INTEGRATION_PRESET: 'better-auth',
+        VITEST_PRESET: 'coverage',
+        LINT_OPTIONS: 'cspell,secretlint,commitlint',
+      }),
+    );
 
     expect(output).toContain('scripts added in package.json:');
     expect(output).toContain('✔    src/db/config.ts');
