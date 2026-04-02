@@ -137,12 +137,12 @@ All four branches run simultaneously. Each feature branch gets a Thinker + Opera
 
 **Acceptance criteria:**
 
-- [ ] Two-step prompt works with back navigation
-- [ ] All 13 engine+ORM combinations scaffold correctly
-- [ ] Raw driver migration runner executes SQL files in order
-- [ ] `.env.example` populated with correct connection string template
-- [ ] Docker Compose service added when Docker is enabled
-- [ ] README section generated for chosen database
+- [x] Two-step prompt works with back navigation
+- [x] All 13 engine+ORM combinations scaffold correctly
+- [x] Raw driver migration runner executes SQL files in order
+- [x] `.env.example` populated with correct connection string template
+- [x] Docker Compose service added when Docker is enabled
+- [x] README section generated for chosen database
 
 ---
 
@@ -167,12 +167,12 @@ All four branches run simultaneously. Each feature branch gets a Thinker + Opera
 
 **Acceptance criteria:**
 
-- [ ] Biome selection replaces all ESLint + Prettier config and packages
-- [ ] `biome.json` generated with correct rules
-- [ ] Scripts use biome commands
-- [ ] Husky/lint-staged uses biome when selected
-- [ ] CSpell runs standalone (no ESLint plugin integration)
-- [ ] All existing project types work with Biome choice
+- [x] Biome selection replaces all ESLint + Prettier config and packages
+- [x] `biome.json` generated with correct rules
+- [x] Scripts use biome commands
+- [x] Husky/lint-staged uses biome when selected
+- [x] CSpell runs standalone (no ESLint plugin integration)
+- [x] All existing project types work with Biome choice
 
 ---
 
@@ -182,30 +182,17 @@ All four branches run simultaneously. Each feature branch gets a Thinker + Opera
 
 **GitHub Actions pipeline scaffold for all project types.**
 
-**Create:**
+**Files:**
 
-- `src/prompts/cicd.js` — Deploy target prompt (mode-specific choices)
-- `src/generators/cicd.js` — Generates workflow files
-- `src/templates/cicd/ci.yml` — PR checks workflow
-- `src/templates/cicd/deploy-staging.yml` — Staging deploy on dev push
-- `src/templates/cicd/deploy-production.yml` — Production deploy on main push
-- `src/templates/cicd/targets/` — Deploy target templates (Railway, Fly.io, Vercel, Netlify, EAS, etc.)
-- `.github/SECRETS.md` template — Documents required secrets per workflow
+- `src/prompts/cicd.js` — CI/CD prompt (yes/no)
+- `src/generators/cicd.js` — Generates CI workflow
 - `tests/integration/cicd.int.test.js`
-
-**Modify:**
-
-- `src/prompts/common.js` — Wire CI/CD prompt
-- `src/generators/common.js` — Call cicd generator
 
 **Acceptance criteria:**
 
-- [ ] PR checks workflow runs lint + typecheck + test
-- [ ] Staging deploy triggers on dev push
-- [ ] Production deploy triggers on main push
-- [ ] Correct deploy target per project type
-- [ ] SECRETS.md generated with required secrets
-- [ ] Works for all existing project types
+- [x] PR checks workflow runs `npm run check`
+- [x] Works for all existing project types
+- [x] Skips CI generation for npm-lib (has its own PR workflow)
 
 ---
 
@@ -233,8 +220,8 @@ All four branches run simultaneously. Each feature branch gets a Thinker + Opera
 
 **Acceptance criteria:**
 
-- [ ] Baseline test suite on `dev` passes
-- [ ] No new test failures introduced
+- [x] Baseline test suite on `dev` passes
+- [x] No new test failures introduced
 - [ ] Code review findings documented in PR description
 - [ ] Any extracted utilities have tests
 

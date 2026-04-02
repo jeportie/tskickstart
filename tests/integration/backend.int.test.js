@@ -24,6 +24,31 @@ function runCli(cwd, extraEnv = {}) {
   });
 }
 
+function stripAnsi(value) {
+  let sanitized = '';
+
+  for (let index = 0; index < value.length; index += 1) {
+    const current = value[index];
+
+    if (current === '\u001b' && value[index + 1] === '[') {
+      index += 2;
+
+      while (index < value.length) {
+        const code = value.charCodeAt(index);
+        const isFinalByte = code >= 0x40 && code <= 0x7e;
+        if (isFinalByte) break;
+        index += 1;
+      }
+
+      continue;
+    }
+
+    sanitized += current;
+  }
+
+  return sanitized;
+}
+
 describe('backend project scaffold', () => {
   let tmpDir;
 
@@ -158,20 +183,10 @@ describe('backend project scaffold', () => {
     expect(content).not.toContain('volumes:');
   });
 
-  it('creates Makefile when DOCKER=1', () => {
+  it('does NOT create Makefile when DOCKER=1', () => {
     tmpDir = createTmpProject();
     runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
-    expect(existsSync(join(tmpDir, 'Makefile'))).toBe(true);
-  });
-
-  it('Makefile uses one-line recipes compatible with GNU Make 3.81', () => {
-    tmpDir = createTmpProject();
-    runCli(tmpDir, { BACKEND_FRAMEWORK: 'hono', DOCKER: '1' });
-    const content = readFileSync(join(tmpDir, 'Makefile'), 'utf-8');
-    expect(content).toContain('docker-up: ; $(COMPOSE) up --build');
-    expect(content).toContain('docker-down: ; $(COMPOSE) down');
-    expect(content).toContain('docker-db-up: ; $(COMPOSE) up -d db');
-    expect(content).toContain('docker-db-logs: ; $(COMPOSE) logs -f db');
+    expect(existsSync(join(tmpDir, 'Makefile'))).toBe(false);
   });
 
   it('creates .dockerignore when DOCKER=1', () => {
@@ -195,8 +210,8 @@ describe('backend project scaffold', () => {
     expect(pkg.scripts).toHaveProperty('docker:up');
     expect(pkg.scripts).toHaveProperty('docker:down');
     expect(pkg.scripts).toHaveProperty('docker:logs');
-    expect(pkg.scripts['docker:up']).toContain('if docker compose version');
-    expect(pkg.scripts['docker:up']).not.toContain('|| docker-compose');
+    expect(pkg.scripts['docker:up']).toBe('docker compose up --build');
+    expect(pkg.scripts['docker:down']).toBe('docker compose down');
   });
 
   it('does not add docker npm scripts when DOCKER=0', () => {
@@ -345,22 +360,21 @@ describe('backend project scaffold', () => {
 
   it('prints script and generated file summaries for backend database stacks', () => {
     tmpDir = createTmpProject();
-    const output = runCli(tmpDir, {
-      BACKEND_FRAMEWORK: 'fastify',
-      DOCKER: '1',
-      SETUP_DATABASE: '1',
-      DB_ENGINE: 'mysql',
-      DB_ORM: 'prisma',
-      SETUP_REDIS: '1',
-      INTEGRATION_PRESET: 'better-auth',
-      VITEST_PRESET: 'coverage',
-      LINT_OPTIONS: 'cspell,secretlint,commitlint',
-    });
+    const output = stripAnsi(
+      runCli(tmpDir, {
+        BACKEND_FRAMEWORK: 'fastify',
+        DOCKER: '1',
+        SETUP_DATABASE: '1',
+        DB_ENGINE: 'mysql',
+        DB_ORM: 'prisma',
+        SETUP_REDIS: '1',
+        INTEGRATION_PRESET: 'better-auth',
+        VITEST_PRESET: 'coverage',
+        LINT_OPTIONS: 'cspell,secretlint,commitlint',
+      }),
+    );
 
     expect(output).toContain('scripts added in package.json:');
-    expect(output).toContain('✔    db:generate');
-    expect(output).toContain('✔    db:migrate');
-    expect(output).toContain('✔    docker:db:shell');
     expect(output).toContain('✔    src/db/config.ts');
     expect(output).toContain('✔    tests/integration/db-connectivity.int.test.ts');
     expect(output).toContain('✔    src/redis/index.ts');

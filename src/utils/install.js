@@ -262,7 +262,7 @@ export async function installDeps(answers, options = {}) {
     );
     console.log(
       pc.green('✔') +
-        `    installed ${finalProdDeps.length} runtime package${finalProdDeps.length === 1 ? '' : 's'}: ${summarizePackages(finalProdDeps)}`,
+        `  installed ${finalProdDeps.length} runtime package${finalProdDeps.length === 1 ? '' : 's'}: ${summarizePackages(finalProdDeps)}`,
     );
   }
 
@@ -275,7 +275,7 @@ export async function installDeps(answers, options = {}) {
     );
     console.log(
       pc.green('✔') +
-        `    installed ${finalDevDeps.length} dev package${finalDevDeps.length === 1 ? '' : 's'}: ${summarizePackages(finalDevDeps)}`,
+        `  installed ${finalDevDeps.length} dev package${finalDevDeps.length === 1 ? '' : 's'}: ${summarizePackages(finalDevDeps)}`,
     );
   }
 
