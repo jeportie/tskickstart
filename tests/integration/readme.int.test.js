@@ -504,9 +504,9 @@ describe('backend README rich stack generation', () => {
     expect(content).toContain('| Containerization | Docker + Docker Compose |');
 
     expect(content).toContain('## Getting Started');
-    expect(content).toContain('make docker-up');
     expect(content).toContain('npm run docker:up');
-    expect(content).toContain('make docker-db-up');
+    expect(content).not.toContain('make docker');
+    expect(content).toContain('npm run docker:db:up');
     expect(content).toContain('npm run db:generate && npm run db:migrate');
 
     expect(content).toContain('## Docker');
@@ -538,8 +538,8 @@ describe('backend README rich stack generation', () => {
 
     expect(content).toContain('## Build and Deploy');
     expect(content).toContain('`ci.yml`');
-    expect(content).toContain('`deploy-staging.yml`');
-    expect(content).toContain('`deploy-production.yml`');
+    expect(content).not.toContain('deploy-staging');
+    expect(content).not.toContain('deploy-production');
 
     expect(content).toContain('## Project Structure');
     expect(content).toContain('src/db/');
@@ -558,7 +558,8 @@ describe('backend README rich stack generation', () => {
     expect(content).toContain('[Better Auth](https://www.better-auth.com/)');
     expect(content).toContain('[Biome](https://biomejs.dev/)');
 
-    expect(content).not.toContain('## Implementation Workflow');
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('## Backend Tutorial');
     expect(content).not.toContain('## Testing Workflow');
     expect(content).not.toContain('## Tool Playbooks');
   });
@@ -609,5 +610,139 @@ describe('all CLI framework variants', () => {
     expect(content).toContain('## Common Tasks');
     expect(content).toContain('## Tool Playbooks');
     expect(content.length).toBeGreaterThan(2000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. Type-specific Implementation Workflow and Tutorial content
+// ---------------------------------------------------------------------------
+
+describe('type-specific Implementation Workflow and Tutorial', () => {
+  // Frontend
+  it('frontend workflow references Vite HMR and Testing Library', () => {
+    const content = generateReadme(frontendAnswers());
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('Vite HMR');
+    expect(content).toContain('src/Welcome.tsx');
+    expect(content).toContain('npm run test:unit');
+    expect(content).toContain('src/App.tsx');
+    expect(content).toContain('npm run check');
+  });
+
+  it('frontend has 3 progressive tutorials', () => {
+    const content = generateReadme(frontendAnswers());
+    expect(content).toContain('## Frontend Tutorial');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('NotificationBanner');
+    expect(content).toContain('React Router');
+    expect(content).toContain('React Query');
+    expect(content).toContain('What you learned');
+  });
+
+  // Backend
+  it('backend workflow references framework-specific route pattern', () => {
+    const content = generateReadme(backendAnswers({ backendFramework: 'hono' }));
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('npm run dev');
+    expect(content).toContain('npm run test:unit');
+    expect(content).toContain('npm run check');
+    expect(content).toContain('curl');
+  });
+
+  it('backend has 3 progressive tutorials', () => {
+    const content = generateReadme(backendAnswers({ backendFramework: 'hono' }));
+    expect(content).toContain('## Backend Tutorial');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('What you learned');
+  });
+
+  it.each(['hono', 'fastify', 'express', 'elysia'])('backend tutorials adapt to %s framework', (framework) => {
+    const content = generateReadme(backendAnswers({ backendFramework: framework }));
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('## Backend Tutorial');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+  });
+
+  // CLI — Commander
+  it('CLI/commander workflow references src/commands/ and handler pattern', () => {
+    const content = generateReadme(cliAnswers({ cliFramework: 'commander' }));
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('src/commands/');
+    expect(content).toContain('npm run dev');
+    expect(content).toContain('vi.spyOn');
+  });
+
+  it('CLI/commander has 3 progressive tutorials', () => {
+    const content = generateReadme(cliAnswers({ cliFramework: 'commander' }));
+    expect(content).toContain('## CLI Tutorial (Commander.js)');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('.command(');
+    expect(content).toContain('.option(');
+  });
+
+  // CLI — Inquirer
+  it('CLI/inquirer has framework-specific tutorials', () => {
+    const content = generateReadme(cliAnswers({ cliFramework: 'inquirer' }));
+    expect(content).toContain('## CLI Tutorial (Inquirer.js)');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('inquirer.prompt');
+  });
+
+  // CLI — Clack
+  it('CLI/clack has framework-specific tutorials', () => {
+    const content = generateReadme(cliAnswers({ cliFramework: 'clack' }));
+    expect(content).toContain('## CLI Tutorial (@clack/prompts)');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('isCancel');
+  });
+
+  // NPM Library
+  it('npm-lib workflow references src/main.ts and dist/', () => {
+    const content = generateReadme(npmLibAnswers());
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('src/main.ts');
+    expect(content).toContain('dist/');
+    expect(content).toContain('npm run build');
+  });
+
+  it('npm-lib has 3 progressive tutorials', () => {
+    const content = generateReadme(npmLibAnswers());
+    expect(content).toContain('## Library Tutorial');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('slugify');
+    expect(content).toContain('Result');
+    expect(content).toContain('What you learned');
+  });
+
+  // Mobile App
+  it('app workflow references src/screens/ and navigation', () => {
+    const content = generateReadme(appAnswers());
+    expect(content).toContain('## Implementation Workflow');
+    expect(content).toContain('src/screens/');
+    expect(content).toContain('src/navigation/');
+    expect(content).toContain('Stack.Screen');
+  });
+
+  it('app has 3 progressive tutorials', () => {
+    const content = generateReadme(appAnswers());
+    expect(content).toContain('## Mobile App Tutorial');
+    expect(content).toContain('### Tutorial 1');
+    expect(content).toContain('### Tutorial 2');
+    expect(content).toContain('### Tutorial 3');
+    expect(content).toContain('ProfileScreen');
+    expect(content).toContain('What you learned');
   });
 });

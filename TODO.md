@@ -67,7 +67,7 @@ Step 3: Common questions (always asked)
 - [x] **Tool versioning:** `mise` (`.mise.toml` with node version pinned)
 - [x] **Dev server:** `tsx --watch` for hot reload
 - [x] **Env validation:** `zod` schema (`src/env.ts`) for type-safe environment variables
-- [x] **Containerization:** `Dockerfile` + `docker-compose.yml` + `Makefile`
+- [x] **Containerization:** `Dockerfile` + `docker-compose.yml`
 
 ---
 
@@ -249,10 +249,120 @@ Offer Biome as an alternative to ESLint + Prettier for all project types.
 
 ---
 
+### Type-Specific Implementation Workflow & Tutorials (CF-032)
+
+The `getImplementationWorkflow()` function in `src/utils/readme.js` generates identical generic workflow steps for all non-backend types (frontend, cli, npm-lib, app), with only tiny 1-8 line tutorial snippets appended per type. The backend README path (`generateBackendReadme`) has `renderBackendDevelopmentSection()` with quick-reference how-tos (adding a route, middleware, env var, curl examples) but no Implementation Workflow or progressive tutorials either.
+
+**Goal:** Replace generic stubs with rich, type-specific workflow steps and progressive multi-step tutorials for all 5 project types.
+
+**Affected files:**
+
+- `src/utils/readme.js` — refactor `getImplementationWorkflow()` into a dispatcher + 4 type-specific functions; add `renderBackendImplementationWorkflow()` + `renderBackendTutorial()` to `generateBackendReadme()`
+- `tests/integration/readme.int.test.js` — add assertions for type-specific content
+
+**Implementation plan:**
+
+1. Refactor `getImplementationWorkflow()` (line 2018) into a dispatcher:
+
+```js
+function getImplementationWorkflow(answers) {
+  switch (answers.projectType) {
+    case 'frontend':
+      return getFrontendImplementationWorkflow(answers);
+    case 'cli':
+      return getCliImplementationWorkflow(answers);
+    case 'npm-lib':
+      return getNpmLibImplementationWorkflow(answers);
+    case 'app':
+      return getAppImplementationWorkflow(answers);
+    default:
+      return '';
+  }
+}
+```
+
+2. Add 4 non-backend functions, each producing:
+   - **Part A**: 5 concrete, type-specific workflow steps
+   - **Part B**: Type-specific Tutorial heading + 3 progressive tutorials with full code examples, test files, and "What you learned" summaries
+
+3. Add 2 backend functions (`renderBackendImplementationWorkflow`, `renderBackendTutorial`) and insert them into `generateBackendReadme()` after the Development section.
+
+4. Update integration tests to assert type-specific content.
+
+**Per-type content outline:**
+
+| Type | Workflow focus | Tutorial topics |
+| --- | --- | --- |
+| frontend | Vite HMR, `.tsx` patterns, Testing Library, React Router, commitlint | NotificationBanner TDD, About page with routing, React Query data fetching |
+| backend | `npm run dev`, framework-specific route, failing test first, quality gate | CRUD endpoint TDD, middleware with validation, DB-backed route (conditional) |
+| cli | `src/commands/` pattern, `npm run dev -- <cmd>`, tsx watch, handler testing | Framework-specific: Commander flags, Inquirer prompts, Clack wizards |
+| npm-lib | Export-first in `src/main.ts`, build to `dist/`, verify CJS+ESM+`.d.ts` | Add a utility, add a typed class, evolve API safely |
+| app | Screen-first in `src/screens/`, wire navigation, Testing Library + Detox | Build a screen, add navigation, shared components |
+
+**Frontend example (target depth for all types):**
+
+The frontend Implementation Workflow and Tutorial should look like this — all other types should match this level of detail with their own stack-specific content.
+
+#### Implementation Workflow
+
+1. **Start the dev server** — run `npm run dev` and open `http://localhost:5173`. Vite HMR is active so every saved change appears instantly in the browser.
+
+2. **Create the component** — add a new `.tsx` file in `src/`. Follow the patterns in `src/Welcome.tsx`: default export, TypeScript props type, Tailwind utility classes for styling.
+
+3. **Write a failing test first** — create a matching test file in `tests/unit/` (e.g. `ComponentName.unit.test.tsx`). Use `render` and `screen` from Testing Library to assert the expected behavior, then run `npm run test:unit` to confirm the test fails.
+
+4. **Implement until tests pass** — fill in the component code until `npm run test:unit` goes green. Check the browser to verify visually — Vite HMR picks up saved changes immediately.
+
+5. **Wire into the app and run the quality gate** — if it is a page, add a `<Route>` in `src/App.tsx`. If it is a shared component, import it in the page that needs it. Then run the full check:
+
+```bash
+npm run check    # format, lint, typecheck, spellcheck, secretlint, tests
+```
+
+Commit using the conventional format enforced by commitlint:
+
+```bash
+git commit -m "feat(ui): add NotificationBanner component"
+```
+
+#### Frontend Tutorial
+
+Three progressive tutorials that build on this project. Each one introduces a real pattern you will use when building features on top of this starter.
+
+**Tutorial 1: Build a NotificationBanner with TDD** — A dismissible banner that accepts a message and a variant (`"info"` or `"error"`). Walks through the full red-green-refactor cycle:
+
+- Step 1: Start with the props type and an empty component (`src/NotificationBanner.tsx`)
+- Step 2: Write failing tests (`tests/unit/NotificationBanner.unit.test.tsx`) using `render`, `screen`, `userEvent`
+- Step 3: Implement until green — `useState`, conditional Tailwind classes, `aria-label`
+- Step 4: Use it — import in `src/Welcome.tsx`, verify in browser
+- "What you learned": TypeScript props, conditional Tailwind classes, `useState` for UI state, `aria-label` for accessible button targeting in tests, `queryByText` for asserting element absence
+
+**Tutorial 2: Add an About page with routing** — React Router v7 (`react-router` package):
+
+- Step 1: Create the page component (`src/About.tsx`)
+- Step 2: Write a unit test (`tests/unit/About.unit.test.tsx`)
+- Step 3: Register the route in `src/App.tsx`
+- Step 4: Write a routing integration test with `MemoryRouter` + `initialEntries`
+- Step 5: Add navigation links with `<Link>` in both pages
+- Step 6: Write an E2E test (`tests/e2e/about.spec.ts`) with Playwright
+- "What you learned": Page layout consistency with Tailwind, React Router v7 route registration, `MemoryRouter` with `initialEntries` for test-time routing, `Link` for client-side navigation, Playwright E2E tests for cross-page flows
+
+**Tutorial 3: Fetch data with React Query** — `@tanstack/react-query` already installed:
+
+- Step 1: Add the `QueryClientProvider` in `src/main.tsx`
+- Step 2: Create a custom data-fetching hook (`src/useUsers.ts`) with `useQuery`
+- Step 3: Build the `UserList` component (`src/UserList.tsx`)
+- Step 4: Test it — fresh `QueryClientProvider` per test with `retry: false`, mock `fetch` with `vi.fn()`, `waitFor` for async
+- Step 5: Add a route and navigate to it
+- "What you learned": Where to place `QueryClientProvider` relative to `ErrorBoundary`, separating fetch logic into a custom hook, the `useQuery` return shape, testing async components with `waitFor`, mocking `fetch` with `vi.fn()`, creating a fresh `QueryClient` per test
+
+Each tutorial includes complete, copy-paste-ready code for every file (component, test, route registration) — not just snippets.
+
+---
+
 ## Additional Features (Backlog)
 
-- [ ] **Vue 3 option** — Alternative to React for frontend mode
-- [ ] **Storybook** — Component dev environment for React/Vue
+- [ ] **Storybook** — Component dev environment for React
 - [ ] **OpenAPI / zod-to-ts** — Schema-first API development for backend/fullstack
 - [ ] **Bun as runtime** — Offer Bun as an alternative runtime, not just for Elysia
 - [ ] **GitHub vs GitLab** — Affects CI/CD template choice
