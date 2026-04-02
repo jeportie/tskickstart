@@ -30,39 +30,64 @@ describe('cicd option', () => {
     if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('generates ci and deploy workflows with proper triggers', () => {
+  it('generates ci.yml with PR trigger and npm run check', () => {
     tmpDir = createTmpProject();
-    runCli(tmpDir, { SETUP_CICD: '1', CICD_TARGET: 'railway' });
+    runCli(tmpDir, { SETUP_CICD: '1' });
 
     const ci = readFileSync(join(tmpDir, '.github/workflows/ci.yml'), 'utf-8');
-    const staging = readFileSync(join(tmpDir, '.github/workflows/deploy-staging.yml'), 'utf-8');
-    const prod = readFileSync(join(tmpDir, '.github/workflows/deploy-production.yml'), 'utf-8');
-
     expect(ci).toContain('pull_request');
-    expect(ci).toContain('npm run lint');
-    expect(ci).toContain('npm run typecheck');
-    expect(ci).toContain('npm test');
-    expect(staging).toContain('branches:');
-    expect(staging).toContain('- dev');
-    expect(prod).toContain('branches:');
-    expect(prod).toContain('- main');
+    expect(ci).toContain('npm run check');
+    expect(ci).toContain('actions/checkout@v4');
+    expect(ci).toContain('node-version: 22');
   });
 
-  it('includes selected deploy target in generated workflows', () => {
+  it('does NOT generate deploy workflows', () => {
     tmpDir = createTmpProject();
-    runCli(tmpDir, { SETUP_CICD: '1', CICD_TARGET: 'flyio' });
+    runCli(tmpDir, { SETUP_CICD: '1' });
 
-    const staging = readFileSync(join(tmpDir, '.github/workflows/deploy-staging.yml'), 'utf-8');
-    expect(staging).toContain('Deploy target: flyio');
+    expect(existsSync(join(tmpDir, '.github/workflows/deploy-staging.yml'))).toBe(false);
+    expect(existsSync(join(tmpDir, '.github/workflows/deploy-production.yml'))).toBe(false);
   });
 
-  it('generates .github/SECRETS.md', () => {
+  it('does NOT generate SECRETS.md', () => {
     tmpDir = createTmpProject();
-    runCli(tmpDir, { SETUP_CICD: '1', CICD_TARGET: 'docker' });
+    runCli(tmpDir, { SETUP_CICD: '1' });
 
-    expect(existsSync(join(tmpDir, '.github/SECRETS.md'))).toBe(true);
-    const secrets = readFileSync(join(tmpDir, '.github/SECRETS.md'), 'utf-8');
-    expect(secrets).toContain('Required GitHub Secrets');
-    expect(secrets).toContain('DEPLOY_TOKEN');
+    expect(existsSync(join(tmpDir, '.github/SECRETS.md'))).toBe(false);
+  });
+
+  it('skips all workflow generation when SETUP_CICD=0', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { SETUP_CICD: '0' });
+
+    expect(existsSync(join(tmpDir, '.github/workflows/ci.yml'))).toBe(false);
+  });
+
+  it('generates ci.yml for frontend projects', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { PROJECT_TYPE: 'frontend', SETUP_CICD: '1' });
+
+    expect(existsSync(join(tmpDir, '.github/workflows/ci.yml'))).toBe(true);
+    const ci = readFileSync(join(tmpDir, '.github/workflows/ci.yml'), 'utf-8');
+    expect(ci).toContain('npm run check');
+  });
+
+  it('does NOT generate ci.yml for npm-lib (has its own PR workflow)', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { PROJECT_TYPE: 'npm-lib', SETUP_CICD: '1', SEMANTIC_RELEASE: '0' });
+
+    expect(existsSync(join(tmpDir, '.github/workflows/ci.yml'))).toBe(false);
+    // npm-lib always gets its own pull-request-checks.yml
+    expect(existsSync(join(tmpDir, '.github/workflows/pull-request-checks.yml'))).toBe(true);
+  });
+
+  it('ci.yml does not contain individual lint/typecheck/test steps', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, { SETUP_CICD: '1' });
+
+    const ci = readFileSync(join(tmpDir, '.github/workflows/ci.yml'), 'utf-8');
+    expect(ci).not.toContain('npm run lint');
+    expect(ci).not.toContain('npm run typecheck');
+    expect(ci).not.toContain('npm test');
   });
 });

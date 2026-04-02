@@ -49,7 +49,7 @@ All project types share a common foundation: ESLint 9 flat config, Prettier, Typ
 - **Framework choice:** Hono, Fastify, Express, or Elysia (Bun)
 - **Dev server:** `tsx --watch` for hot reload
 - **Env validation:** optional Zod schema (`src/env.ts`) for type-safe environment variables
-- **Docker:** optional `Dockerfile` + `docker-compose.yml` + `Makefile` with lifecycle-safe setup
+- **Docker:** optional `Dockerfile` + `docker-compose.yml` with lifecycle-safe setup
 - **Tests:** framework-specific test templates included
 
 > Database scaffolding is intentionally a **backend capability**. Non-backend project types do not prompt for database setup.
@@ -561,7 +561,7 @@ tskickstart/
 │   │   ├── common.js               # Shared config generation (all types)
 │   │   ├── npm-lib.js              # tsup, exports, semantic-release setup
 │   │   ├── cli.js                  # bin wiring, command templates
-│   │   ├── backend.js              # Server, Docker, Makefile templates
+│   │   ├── backend.js              # Server, Docker templates
 │   │   ├── frontend.js             # React + Vite + Tailwind generation
 │   │   ├── app.js                  # Expo + React Native generation
 │   │   └── playwright.js           # Playwright config and spec generation
@@ -569,7 +569,7 @@ tskickstart/
 │   │   ├── common/                 # Shared templates (eslint, prettier, tsconfig)
 │   │   ├── npm-lib/                # tsup config, CI workflows
 │   │   ├── cli/                    # Command and test templates
-│   │   ├── backend/                # Server, Docker, Makefile templates
+│   │   ├── backend/                # Server, Docker templates
 │   │   ├── frontend/               # React starter (components, tests, configs)
 │   │   ├── app/                    # Expo starter (screens, navigation, configs)
 │   │   └── playwright/             # Playwright config and example specs
