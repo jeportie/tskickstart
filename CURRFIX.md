@@ -51,7 +51,7 @@ All reported issues are now `DONE` and merged into `dev`.
 - [x] CF-036 | DOCS/PACKAGE-MANAGER | Adapt generated README commands to match chosen package manager (pnpm vs npm) | STATUS=DONE | reported_by=user | GH=#44 | PR=#49 merged to dev
 - [x] CF-037 | DX/CLI | Restore full branded `tskickstart` banner; keep 80-column rule for regular CLI output only | STATUS=DONE | reported_by=user | GH=#52 | PR=#54 merged to dev
 - [x] CF-038 | LINT/BIOME | Replace invalid `files.ignore` with Biome v2-compatible file exclusion config in generated `biome.json` | STATUS=DONE | reported_by=user | GH=#56 | PR=#57 merged to dev
-- [ ] CF-039 | LINT/CSPELL | Ignore `pnpm-lock.yaml` in generated `cspell.json` when pnpm is selected | STATUS=OPEN | reported_by=user | GH=#58
+- [x] CF-039 | LINT/CSPELL | Ignore `pnpm-lock.yaml` in generated `cspell.json` when pnpm is selected | STATUS=DONE | reported_by=user | GH=#58 | PR=#59 merged to dev
 
 ## Issue Entry Template
 
