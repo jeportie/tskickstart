@@ -117,33 +117,37 @@ export async function askCommonQuestions(projectType) {
     }
   }
 
-  let captureSecrets = false;
-  if (process.env.SECRET_CAPTURE === '1') {
-    captureSecrets = true;
-  } else if (process.env.SECRET_CAPTURE === '0') {
-    captureSecrets = false;
-  } else if (process.stdin.isTTY) {
-    const result = await prompt([
-      {
-        type: 'confirm',
-        name: 'captureSecrets',
-        message: 'Capture starter secrets and bootstrap .env files?',
-        default: true,
-      },
-    ]);
-    captureSecrets = result.captureSecrets;
-  }
-
   const secretValues = {};
-  if (captureSecrets) {
-    if (process.env.SECRET_DATABASE_URL !== undefined) {
-      secretValues.DATABASE_URL = process.env.SECRET_DATABASE_URL;
+  let captureSecrets = false;
+  const projectTypesWithEnvFiles = ['backend', 'cli', 'app'];
+
+  if (projectTypesWithEnvFiles.includes(projectType)) {
+    if (process.env.SECRET_CAPTURE === '1') {
+      captureSecrets = true;
+    } else if (process.env.SECRET_CAPTURE === '0') {
+      captureSecrets = false;
+    } else if (process.stdin.isTTY) {
+      const result = await prompt([
+        {
+          type: 'confirm',
+          name: 'captureSecrets',
+          message: 'Capture starter secrets and bootstrap .env files?',
+          default: true,
+        },
+      ]);
+      captureSecrets = result.captureSecrets;
     }
-    if (process.env.SECRET_REDIS_URL !== undefined) {
-      secretValues.REDIS_URL = process.env.SECRET_REDIS_URL;
-    }
-    if (process.env.SECRET_APP_SECRET !== undefined) {
-      secretValues.APP_SECRET = process.env.SECRET_APP_SECRET;
+
+    if (captureSecrets) {
+      if (process.env.SECRET_DATABASE_URL !== undefined) {
+        secretValues.DATABASE_URL = process.env.SECRET_DATABASE_URL;
+      }
+      if (process.env.SECRET_REDIS_URL !== undefined) {
+        secretValues.REDIS_URL = process.env.SECRET_REDIS_URL;
+      }
+      if (process.env.SECRET_APP_SECRET !== undefined) {
+        secretValues.APP_SECRET = process.env.SECRET_APP_SECRET;
+      }
     }
   }
 
