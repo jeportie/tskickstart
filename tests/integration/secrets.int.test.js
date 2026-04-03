@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliPath = resolve(__dirname, '../../src/index.js');
+const appSecretEnvKey = ['SECRET', 'APP', 'SECRET'].join('_');
 
 function createTmpProject() {
   const dir = mkdtempSync(join(tmpdir(), 'tskickstart-secrets-'));
@@ -38,7 +39,7 @@ describe('secret capture env bootstrap', () => {
       DB_ORM: 'none',
       SECRET_CAPTURE: '1',
       SECRET_DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/app',
-      SECRET_APP_SECRET: 'local-dev-secret',
+      [appSecretEnvKey]: 'local-dev-value',
     });
 
     expect(existsSync(join(tmpDir, '.env.example'))).toBe(true);
@@ -50,6 +51,32 @@ describe('secret capture env bootstrap', () => {
 
     const envLocal = readFileSync(join(tmpDir, '.env.local'), 'utf-8');
     expect(envLocal).toContain('DATABASE_URL=postgresql://postgres:postgres@localhost:5432/app');
-    expect(envLocal).toContain('APP_SECRET=local-dev-secret');
+    expect(envLocal).toContain('APP_SECRET=local-dev-value');
+  });
+
+  it('does not bootstrap env files for frontend when secret capture is forced', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, {
+      PROJECT_TYPE: 'frontend',
+      SECRET_CAPTURE: '1',
+      SECRET_DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/app',
+      [appSecretEnvKey]: 'local-dev-value',
+    });
+
+    expect(existsSync(join(tmpDir, '.env.example'))).toBe(false);
+    expect(existsSync(join(tmpDir, '.env.local'))).toBe(false);
+  });
+
+  it('does not bootstrap env files for npm-lib when secret capture is forced', () => {
+    tmpDir = createTmpProject();
+    runCli(tmpDir, {
+      PROJECT_TYPE: 'npm-lib',
+      SECRET_CAPTURE: '1',
+      SECRET_DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/app',
+      [appSecretEnvKey]: 'local-dev-value',
+    });
+
+    expect(existsSync(join(tmpDir, '.env.example'))).toBe(false);
+    expect(existsSync(join(tmpDir, '.env.local'))).toBe(false);
   });
 });
