@@ -41,9 +41,14 @@ All reported issues are now `DONE` and merged into `dev`.
 - [x] CF-027 | CICD | npm-lib collision resolved — cicd.js skips ci.yml for npm-lib type (has its own PR workflow) | STATUS=DONE | reported_by=assistant
 - [x] CF-028 | CICD | CI workflow now uses single `npm run check` step instead of individual lint/typecheck/test | STATUS=DONE | reported_by=assistant
 - [x] CF-029 | DX/CICD | CI/CD test coverage expanded — 7 tests covering skip, frontend, npm-lib collision, versions, no deploy stubs | STATUS=DONE | reported_by=assistant
-- [] CF-030 | DX | Make sure all the CLI output stays in a width of size 80 | STATUS=IN_PROGRESS| reported_by=user
-- [ ] CF-031 | LINT/FRONTEND | Biome errors in generated frontend templates: `src/main.tsx` uses non-null assertion (`document.getElementById('root')!`), `src/Welcome.tsx` button missing explicit `type` attribute | STATUS=OPEN | reported_by=user
-- [ ] CF-032 | DOCS/README | (For more details, check in TODO.md -> CF-032) Implementation Workflow and Tutorial sections are generic stubs — replace with rich, type-specific workflow steps and progressive tutorials for all 5 project types (frontend, backend, cli, npm-lib, app) | STATUS=IN_PROGRESS | reported_by=user
+- [x] CF-030 | DX | Make sure all the CLI output stays in a width of size 80 | STATUS=DONE | reported_by=user | GH=#39 | PR=#46 merged to dev
+- [x] CF-031 | LINT/FRONTEND | Biome errors in generated frontend templates: `src/main.tsx` uses non-null assertion (`document.getElementById('root')!`), `src/Welcome.tsx` button missing explicit `type` attribute | STATUS=DONE | reported_by=user | GH=#40 | PR=#50 merged to dev
+- [x] CF-032 | DOCS/README | (For more details, check in TODO.md -> CF-032) Implementation Workflow and Tutorial sections are generic stubs — replace with rich, type-specific workflow steps and progressive tutorials for all 5 project types (frontend, backend, cli, npm-lib, app) | STATUS=DONE | reported_by=user | GH=#38 | PR=#38 merged to dev
+
+- [x] CF-033 | LINT/BIOME | Add explicit ignore patterns (dist, node_modules, package-lock.json, coverage) to generated biome.json | STATUS=DONE | reported_by=user | GH=#41 | PR=#48 merged to dev
+- [x] CF-034 | PROMPTS/SECRETS | Skip "Capture secrets?" prompt for project types that don't generate env vars (frontend, npm-lib) | STATUS=DONE | reported_by=user | GH=#42 | PR=#45 merged to dev
+- [x] CF-035 | DOCS/RELEASE | Add NPM token and GitHub secret setup instructions in generated README for semantic-release projects | STATUS=DONE | reported_by=user | GH=#43 | PR=#47 merged to dev
+- [x] CF-036 | DOCS/PACKAGE-MANAGER | Adapt generated README commands to match chosen package manager (pnpm vs npm) | STATUS=DONE | reported_by=user | GH=#44 | PR=#49 merged to dev
 
 ## Issue Entry Template
 
